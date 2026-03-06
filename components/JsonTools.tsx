@@ -253,11 +253,33 @@ function highlightJson(json: string): string {
 
 // --- JSON → TypeScript generator ---
 
+type NamingConvention = 'standard' | 'camel' | 'snake';
+
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }
 
-function jsonToTs(jsonStr: string): string {
+function toCamelCase(s: string): string {
+  return s
+    .replace(/[-_\s]+(.)/g, (_, c: string) => c.toUpperCase())
+    .replace(/^(.)/, (c: string) => c.toLowerCase());
+}
+
+function toSnakeCase(s: string): string {
+  return s
+    .replace(/([A-Z])/g, '_$1')
+    .replace(/[-\s]+/g, '_')
+    .replace(/^_/, '')
+    .toLowerCase();
+}
+
+function convertKey(key: string, convention: NamingConvention): string {
+  if (convention === 'camel') return toCamelCase(key);
+  if (convention === 'snake') return toSnakeCase(key);
+  return key;
+}
+
+function jsonToTs(jsonStr: string, convention: NamingConvention = 'camel'): string {
   const root = JSON.parse(jsonStr);
   const defs: string[] = [];
   const seen = new Set<string>();
@@ -290,7 +312,8 @@ function jsonToTs(jsonStr: string): string {
     if (seen.has(name)) return;
     seen.add(name);
     const lines = Object.entries(obj).map(([k, v]) => {
-      const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : `"${k}"`;
+      const converted = convertKey(k, convention);
+      const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(converted) ? converted : `"${converted}"`;
       return `  ${safeKey}: ${inferType(v, k)};`;
     });
     defs.push(`export interface ${name} {\n${lines.join('\n')}\n}`);
@@ -349,6 +372,7 @@ export default function JsonTools() {
   const [tsOutput, setTsOutput] = useState('');
   const [tsError, setTsError] = useState<string | null>(null);
   const [tsCopied, setTsCopied] = useState(false);
+  const [tsNaming, setTsNaming] = useState<NamingConvention>('camel');
 
   // Diff
   const [diffBefore, setDiffBefore] = useState('');
@@ -647,21 +671,39 @@ export default function JsonTools() {
                 </div>
               )}
             </section>
-            <button
-              onClick={() => {
-                if (!tsInput.trim()) return;
-                try {
-                  setTsOutput(jsonToTs(tsInput));
-                  setTsError(null);
-                } catch (e: unknown) {
-                  setTsError(`Invalid JSON: ${e instanceof Error ? e.message : 'Parse error'}`);
-                  setTsOutput('');
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest text-xs"
-            >
-              <Code2 size={16} /> Generate TypeScript
-            </button>
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Key Naming Convention</label>
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  {(['standard', 'camel', 'snake'] as const).map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setTsNaming(v)}
+                      className={`flex-1 py-2 px-3 text-[10px] font-black rounded-lg uppercase transition-all ${
+                        tsNaming === v ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      {v === 'standard' ? 'Standard' : v === 'camel' ? 'Camel' : 'Snake'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!tsInput.trim()) return;
+                  try {
+                    setTsOutput(jsonToTs(tsInput, tsNaming));
+                    setTsError(null);
+                  } catch (e: unknown) {
+                    setTsError(`Invalid JSON: ${e instanceof Error ? e.message : 'Parse error'}`);
+                    setTsOutput('');
+                  }
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest text-xs"
+              >
+                <Code2 size={16} /> Generate TypeScript
+              </button>
+            </section>
           </div>
 
           <div className="lg:col-span-4 flex flex-col">
