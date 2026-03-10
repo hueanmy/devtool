@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Code2, Layers, Copy, Check, Minimize2, Maximize2 } from 'lucide-react';
 import { format as prettyPrintSql } from 'sql-formatter';
+import ResizableSplit from './ResizableSplit';
 
 // ── SQL Syntax Highlighter ──────────────────────────────────────────────────
 
@@ -101,69 +102,65 @@ export default function SqlFormatter() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* Left: Input + Info */}
-      <div className="lg:col-span-8 flex flex-col gap-6">
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Code2 size={14} className="text-slate-400" /> SQL Input
-            </span>
-            <div className="flex bg-slate-200 p-0.5 rounded-lg gap-0.5">
-              <button
-                onClick={() => setSqlMode('format')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${
-                  sqlMode === 'format' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <Maximize2 size={11} /> Format
-              </button>
-              <button
-                onClick={() => setSqlMode('minify')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${
-                  sqlMode === 'minify' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <Minimize2 size={11} /> Minify
-              </button>
-            </div>
-          </div>
-          <textarea
-            className="flex-1 p-6 resize-none focus:outline-none font-mono text-sm text-slate-700 placeholder:text-slate-300 bg-white leading-relaxed"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Paste raw SQL here..."
-          />
-        </section>
+  const leftPanel = (
+    <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px] h-full">
+      <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+          <Code2 size={14} className="text-slate-400" /> SQL Input
+        </span>
+        <div className="flex bg-slate-200 p-0.5 rounded-lg gap-0.5">
+          <button
+            onClick={() => setSqlMode('format')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${
+              sqlMode === 'format' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Maximize2 size={11} /> Format
+          </button>
+          <button
+            onClick={() => setSqlMode('minify')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${
+              sqlMode === 'minify' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Minimize2 size={11} /> Minify
+          </button>
+        </div>
       </div>
-
-      {/* Right: Output */}
-      <div className="lg:col-span-4 flex flex-col">
-        <section className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 flex flex-col flex-1 overflow-hidden min-h-[500px]">
-          <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between">
-            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
-              <Layers size={14} /> {sqlMode === 'minify' ? 'Minified SQL' : 'Formatted SQL'}
-            </span>
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-lg"
-            >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? 'COPIED' : 'COPY RESULT'}
-            </button>
-          </div>
-          <div className="flex-1 p-6 overflow-auto">
-            {output
-              ? <pre
-                  className="font-mono text-[13px] text-slate-200 whitespace-pre-wrap leading-relaxed selection:bg-blue-500 selection:text-white"
-                  dangerouslySetInnerHTML={{ __html: highlightedOutput }}
-                />
-              : <pre className="font-mono text-[13px] text-slate-600 whitespace-pre-wrap leading-relaxed">{'// Output will appear here...'}</pre>
-            }
-          </div>
-        </section>
-      </div>
-    </div>
+      <textarea
+        className="flex-1 p-6 resize-none focus:outline-none font-mono text-sm text-slate-700 placeholder:text-slate-300 bg-white leading-relaxed"
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        placeholder="Paste raw SQL here..."
+      />
+    </section>
   );
+
+  const rightPanel = (
+    <section className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 flex flex-col flex-1 overflow-hidden min-h-[500px]">
+      <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between">
+        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
+          <Layers size={14} /> {sqlMode === 'minify' ? 'Minified SQL' : 'Formatted SQL'}
+        </span>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-lg"
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          {copied ? 'COPIED' : 'COPY RESULT'}
+        </button>
+      </div>
+      <div className="flex-1 p-6 overflow-auto">
+        {output
+          ? <pre
+              className="font-mono text-[13px] text-slate-200 whitespace-pre-wrap leading-relaxed selection:bg-blue-500 selection:text-white"
+              dangerouslySetInnerHTML={{ __html: highlightedOutput }}
+            />
+          : <pre className="font-mono text-[13px] text-slate-600 whitespace-pre-wrap leading-relaxed">{'// Output will appear here...'}</pre>
+        }
+      </div>
+    </section>
+  );
+
+  return <ResizableSplit left={leftPanel} right={rightPanel} />;
 }

@@ -1,9 +1,45 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import mermaid from 'mermaid';
 import { Copy, Check, Trash2, Upload, FileText, Eye, Columns2 } from 'lucide-react';
 
+// ── Mermaid diagram renderer ─────────────────────────────────────────────────
+
+let mermaidCounter = 0;
+
+function MermaidBlock({ code }: { code: string }) {
+  const [svg, setSvg] = useState('');
+  const [error, setError] = useState('');
+  const id = useRef(`mermaid-${++mermaidCounter}`);
+
+  useEffect(() => {
+    setSvg('');
+    setError('');
+    mermaid.render(id.current, code)
+      .then(({ svg: rendered }) => setSvg(rendered))
+      .catch(e => setError(e instanceof Error ? e.message : String(e)));
+  }, [code]);
+
+  if (error) {
+    return (
+      <div className="my-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs font-mono">
+        Mermaid error: {error}
+      </div>
+    );
+  }
+  if (!svg) return <div className="my-4 text-slate-400 text-xs italic">Rendering diagram…</div>;
+  return (
+    <div
+      className="my-4 flex justify-center overflow-x-auto"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
+
 type ViewMode = 'split' | 'editor' | 'preview';
+
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
 
 const DEFAULT_MARKDOWN = `# Welcome to Markdown Preview
 
@@ -43,7 +79,16 @@ function hello(name) {
 
 ---
 
-Supports **CommonMark** + **GFM** (GitHub Flavored Markdown).
+Supports **CommonMark** + **GFM** (GitHub Flavored Markdown) + **Mermaid** diagrams.
+
+## Mermaid Diagram
+
+\`\`\`mermaid
+flowchart LR
+    A[Input] --> B{Process}
+    B --> C[Output]
+    B --> D[Error]
+\`\`\`
 `;
 
 export default function MarkdownPreview() {
@@ -179,7 +224,17 @@ export default function MarkdownPreview() {
             </div>
             <div className="flex-1 overflow-auto p-6">
               <div className="markdown-body max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code({ className, children }) {
+                      const lang = /language-(\w+)/.exec(className || '')?.[1];
+                      const code = String(children).replace(/\n$/, '');
+                      if (lang === 'mermaid') return <MermaidBlock code={code} />;
+                      return <code className={className}>{children}</code>;
+                    },
+                  }}
+                >
                   {markdown}
                 </ReactMarkdown>
               </div>

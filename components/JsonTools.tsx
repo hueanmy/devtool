@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
+import ResizableSplit from './ResizableSplit';
 import {
   Braces, Layers, Copy, Check, Maximize2, Minimize2, AlertCircle,
   Upload, Wrench, GitCompare, ChevronRight, ChevronDown, Plus, Minus,
@@ -524,75 +525,74 @@ export default function JsonTools() {
 
       {/* ── FORMAT TAB ── */}
       {tab === 'format' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">
-              <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Braces size={14} /> JSON Input
-                </span>
-                <FileImportButton onLoad={handleFileLoad} />
-              </div>
-              <textarea
-                className={`flex-1 p-6 resize-none focus:outline-none font-mono text-sm text-slate-700 placeholder:text-slate-300 bg-white leading-relaxed ${error ? 'ring-2 ring-red-100' : ''}`}
-                value={input}
-                onChange={e => { setInput(e.target.value); setError(null); }}
-                onPaste={handleInputPaste}
-                placeholder='Paste or import JSON here...'
-              />
-              {error && (
-                <div className="px-6 py-3 bg-red-50 border-t border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold">
-                  <AlertCircle size={14} /> {error}
+        <ResizableSplit
+          left={
+            <div className="flex flex-col gap-6 h-full">
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">
+                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Braces size={14} /> JSON Input
+                  </span>
+                  <FileImportButton onLoad={handleFileLoad} />
                 </div>
-              )}
-            </section>
+                <textarea
+                  className={`flex-1 p-6 resize-none focus:outline-none font-mono text-sm text-slate-700 placeholder:text-slate-300 bg-white leading-relaxed ${error ? 'ring-2 ring-red-100' : ''}`}
+                  value={input}
+                  onChange={e => { setInput(e.target.value); setError(null); }}
+                  onPaste={handleInputPaste}
+                  placeholder='Paste or import JSON here...'
+                />
+                {error && (
+                  <div className="px-6 py-3 bg-red-50 border-t border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold">
+                    <AlertCircle size={14} /> {error}
+                  </div>
+                )}
+              </section>
 
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Indent Style</label>
-                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                  {([2, 4, 'tab'] as const).map(v => (
-                    <button
-                      key={String(v)}
-                      onClick={() => setIndent(v as typeof indent)}
-                      className={`flex-1 py-2 px-3 text-[10px] font-black rounded-lg uppercase transition-all ${
-                        indent === v ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      {v === 'tab' ? 'Tab' : `${v} Spaces`}
-                    </button>
-                  ))}
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Indent Style</label>
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    {([2, 4, 'tab'] as const).map(v => (
+                      <button
+                        key={String(v)}
+                        onClick={() => setIndent(v as typeof indent)}
+                        className={`flex-1 py-2 px-3 text-[10px] font-black rounded-lg uppercase transition-all ${
+                          indent === v ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        {v === 'tab' ? 'Tab' : `${v} Spaces`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleFormat('beautify')}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest text-xs"
-                >
-                  <Maximize2 size={16} /> Beautify
-                </button>
-                <button
-                  onClick={() => handleFormat('minify')}
-                  className="flex-1 bg-slate-900 hover:bg-black text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-200 uppercase tracking-widest text-xs"
-                >
-                  <Minimize2 size={16} /> Minify
-                </button>
-                <button
-                  onClick={handleAutoFix}
-                  title="Attempts to repair broken JSON: trailing commas, single quotes, unquoted keys, etc."
-                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-100 uppercase tracking-widest text-xs"
-                >
-                  <Wrench size={16} /> Auto Fix
-                </button>
-              </div>
-            </section>
-          </div>
-
-          {/* Output Panel */}
-          <div className="lg:col-span-4 flex flex-col">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleFormat('beautify')}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest text-xs"
+                  >
+                    <Maximize2 size={16} /> Beautify
+                  </button>
+                  <button
+                    onClick={() => handleFormat('minify')}
+                    className="flex-1 bg-slate-900 hover:bg-black text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-200 uppercase tracking-widest text-xs"
+                  >
+                    <Minimize2 size={16} /> Minify
+                  </button>
+                  <button
+                    onClick={handleAutoFix}
+                    title="Attempts to repair broken JSON: trailing commas, single quotes, unquoted keys, etc."
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-100 uppercase tracking-widest text-xs"
+                  >
+                    <Wrench size={16} /> Auto Fix
+                  </button>
+                </div>
+              </section>
+            </div>
+          }
+          right={
             <section className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 flex flex-col flex-1 overflow-hidden min-h-[500px]">
               <div className="px-5 py-3 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between gap-2">
-                {/* Output mode toggle */}
                 <div className="flex bg-slate-700/50 p-0.5 rounded-lg gap-0.5">
                   <button
                     onClick={() => switchOutputMode('text')}
@@ -643,70 +643,71 @@ export default function JsonTools() {
                 )}
               </div>
             </section>
-          </div>
-        </div>
+          }
+        />
       )}
 
       {/* ── TS TYPES TAB ── */}
       {tab === 'ts' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">
-              <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Braces size={14} /> JSON Input
-                </span>
-                <FileImportButton onLoad={text => { setTsInput(text); setTsOutput(''); setTsError(null); }} />
-              </div>
-              <textarea
-                className={`flex-1 p-6 resize-none focus:outline-none font-mono text-sm text-slate-700 placeholder:text-slate-300 bg-white leading-relaxed ${tsError ? 'ring-2 ring-red-100' : ''}`}
-                value={tsInput}
-                onChange={e => { setTsInput(e.target.value); setTsError(null); }}
-                onPaste={e => { e.preventDefault(); const text = e.clipboardData.getData('text'); setTsInput(text); setTsError(null); setTsOutput(''); }}
-                placeholder='Paste JSON here to generate TypeScript interfaces...'
-              />
-              {tsError && (
-                <div className="px-6 py-3 bg-red-50 border-t border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold">
-                  <AlertCircle size={14} /> {tsError}
+        <ResizableSplit
+          left={
+            <div className="flex flex-col gap-6 h-full">
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">
+                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Braces size={14} /> JSON Input
+                  </span>
+                  <FileImportButton onLoad={text => { setTsInput(text); setTsOutput(''); setTsError(null); }} />
                 </div>
-              )}
-            </section>
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Key Naming Convention</label>
-                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                  {(['standard', 'camel', 'snake'] as const).map(v => (
-                    <button
-                      key={v}
-                      onClick={() => setTsNaming(v)}
-                      className={`flex-1 py-2 px-3 text-[10px] font-black rounded-lg uppercase transition-all ${
-                        tsNaming === v ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      {v === 'standard' ? 'Standard' : v === 'camel' ? 'Camel' : 'Snake'}
-                    </button>
-                  ))}
+                <textarea
+                  className={`flex-1 p-6 resize-none focus:outline-none font-mono text-sm text-slate-700 placeholder:text-slate-300 bg-white leading-relaxed ${tsError ? 'ring-2 ring-red-100' : ''}`}
+                  value={tsInput}
+                  onChange={e => { setTsInput(e.target.value); setTsError(null); }}
+                  onPaste={e => { e.preventDefault(); const text = e.clipboardData.getData('text'); setTsInput(text); setTsError(null); setTsOutput(''); }}
+                  placeholder='Paste JSON here to generate TypeScript interfaces...'
+                />
+                {tsError && (
+                  <div className="px-6 py-3 bg-red-50 border-t border-red-100 flex items-center gap-2 text-red-600 text-xs font-bold">
+                    <AlertCircle size={14} /> {tsError}
+                  </div>
+                )}
+              </section>
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Key Naming Convention</label>
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    {(['standard', 'camel', 'snake'] as const).map(v => (
+                      <button
+                        key={v}
+                        onClick={() => setTsNaming(v)}
+                        className={`flex-1 py-2 px-3 text-[10px] font-black rounded-lg uppercase transition-all ${
+                          tsNaming === v ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        {v === 'standard' ? 'Standard' : v === 'camel' ? 'Camel' : 'Snake'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => {
-                  if (!tsInput.trim()) return;
-                  try {
-                    setTsOutput(jsonToTs(tsInput, tsNaming));
-                    setTsError(null);
-                  } catch (e: unknown) {
-                    setTsError(`Invalid JSON: ${e instanceof Error ? e.message : 'Parse error'}`);
-                    setTsOutput('');
-                  }
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest text-xs"
-              >
-                <Code2 size={16} /> Generate TypeScript
-              </button>
-            </section>
-          </div>
-
-          <div className="lg:col-span-4 flex flex-col">
+                <button
+                  onClick={() => {
+                    if (!tsInput.trim()) return;
+                    try {
+                      setTsOutput(jsonToTs(tsInput, tsNaming));
+                      setTsError(null);
+                    } catch (e: unknown) {
+                      setTsError(`Invalid JSON: ${e instanceof Error ? e.message : 'Parse error'}`);
+                      setTsOutput('');
+                    }
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest text-xs"
+                >
+                  <Code2 size={16} /> Generate TypeScript
+                </button>
+              </section>
+            </div>
+          }
+          right={
             <section className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 flex flex-col flex-1 overflow-hidden min-h-[500px]">
               <div className="px-5 py-3 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between">
                 <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
@@ -736,8 +737,8 @@ export default function JsonTools() {
                 }
               </div>
             </section>
-          </div>
-        </div>
+          }
+        />
       )}
 
       {/* ── DIFF TAB ── */}
