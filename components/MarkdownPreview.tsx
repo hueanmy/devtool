@@ -11,14 +11,21 @@ let mermaidCounter = 0;
 function MermaidBlock({ code }: { code: string }) {
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
-  const id = useRef(`mermaid-${++mermaidCounter}`);
 
   useEffect(() => {
     setSvg('');
     setError('');
-    mermaid.render(id.current, code)
-      .then(({ svg: rendered }) => setSvg(rendered))
-      .catch(e => setError(e instanceof Error ? e.message : String(e)));
+    // Use a fresh ID each render so mermaid never reuses a stale/errored DOM node
+    const id = `mermaid-${++mermaidCounter}`;
+    mermaid.render(id, code)
+      .then(({ svg: rendered }) => {
+        setSvg(rendered);
+        document.getElementById(id)?.remove();
+      })
+      .catch(e => {
+        setError(e instanceof Error ? e.message : String(e));
+        document.getElementById(id)?.remove();
+      });
   }, [code]);
 
   if (error) {
