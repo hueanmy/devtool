@@ -162,5 +162,5 @@ export default function SqlFormatter() {
     </section>
   );
 
-  return <ResizableSplit left={leftPanel} right={rightPanel} />;
+  return <ResizableSplit left={leftPanel} right={rightPanel} storageKey="split:sql-formatter" />;
 }

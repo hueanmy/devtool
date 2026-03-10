@@ -155,5 +155,5 @@ export default function ListCleaner() {
     </section>
   );
 
-  return <ResizableSplit left={leftPanel} right={rightPanel} />;
+  return <ResizableSplit left={leftPanel} right={rightPanel} storageKey="split:list-cleaner" />;
 }

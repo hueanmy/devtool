@@ -7,17 +7,26 @@ interface ResizableSplitProps {
   minLeftPercent?: number;
   maxLeftPercent?: number;
   gap?: number; // px
+  storageKey?: string;
 }
 
 export default function ResizableSplit({
   left,
   right,
-  defaultLeftPercent = 66.67,
+  defaultLeftPercent = 50,
   minLeftPercent = 20,
   maxLeftPercent = 82,
   gap = 8,
+  storageKey,
 }: ResizableSplitProps) {
-  const [leftPercent, setLeftPercent] = useState(defaultLeftPercent);
+  const [leftPercent, setLeftPercent] = useState(() => {
+    if (storageKey) {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return Number(saved);
+    }
+    return defaultLeftPercent;
+  });
+  const leftPercentRef = useRef(leftPercent);
   const [isLg, setIsLg] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -39,14 +48,17 @@ export default function ResizableSplit({
 
     const onMove = (ev: MouseEvent) => {
       const deltaPct = ((ev.clientX - startX) / rect.width) * 100;
-      setLeftPercent(
-        Math.min(maxLeftPercent, Math.max(minLeftPercent, startLeft + deltaPct))
-      );
+      const next = Math.min(maxLeftPercent, Math.max(minLeftPercent, startLeft + deltaPct));
+      leftPercentRef.current = next;
+      setLeftPercent(next);
     };
 
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      if (storageKey) {
+        localStorage.setItem(storageKey, String(leftPercentRef.current));
+      }
     };
 
     window.addEventListener('mousemove', onMove);

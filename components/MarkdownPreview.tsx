@@ -31,7 +31,7 @@ function MermaidBlock({ code }: { code: string }) {
   if (!svg) return <div className="my-4 text-slate-400 text-xs italic">Rendering diagram…</div>;
   return (
     <div
-      className="my-4 flex justify-center overflow-x-auto"
+      className="my-4 flex justify-center overflow-x-auto rounded-lg bg-white p-2"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
@@ -39,7 +39,7 @@ function MermaidBlock({ code }: { code: string }) {
 
 type ViewMode = 'split' | 'editor' | 'preview';
 
-mermaid.initialize({ startOnLoad: false, theme: 'default' });
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
 
 const DEFAULT_MARKDOWN = `# Welcome to Markdown Preview
 

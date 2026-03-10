@@ -526,6 +526,7 @@ export default function JsonTools() {
       {/* ── FORMAT TAB ── */}
       {tab === 'format' && (
         <ResizableSplit
+          storageKey="split:json-format"
           left={
             <div className="flex flex-col gap-6 h-full">
               <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">
@@ -650,6 +651,7 @@ export default function JsonTools() {
       {/* ── TS TYPES TAB ── */}
       {tab === 'ts' && (
         <ResizableSplit
+          storageKey="split:json-ts"
           left={
             <div className="flex flex-col gap-6 h-full">
               <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">

@@ -140,5 +140,5 @@ export default function DataFormatter() {
     </section>
   );
 
-  return <ResizableSplit left={leftPanel} right={rightPanel} />;
+  return <ResizableSplit left={leftPanel} right={rightPanel} storageKey="split:data-formatter" />;
 }
