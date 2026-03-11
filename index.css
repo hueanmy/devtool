@@ -35,16 +35,15 @@
   border: 1px solid #e2e8f0;
 }
 .markdown-body pre {
-  background: #0f172a;
+  background: #ffffff;
   border-radius: 10px;
   padding: 1.25em 1.5em;
   overflow-x: auto;
   margin: 1em 0;
-  border: 1px solid #1e293b;
 }
 .markdown-body pre code {
   background: none;
-  color: #94d2bd;
+  color: #1e293b;
   padding: 0;
   border: none;
   border-radius: 0;

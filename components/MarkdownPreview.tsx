@@ -11,6 +11,7 @@ let mermaidCounter = 0;
 function MermaidBlock({ code }: { code: string }) {
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
+  const [zoomed, setZoomed] = useState(false);
 
   useEffect(() => {
     setSvg('');
@@ -19,7 +20,10 @@ function MermaidBlock({ code }: { code: string }) {
     const id = `mermaid-${++mermaidCounter}`;
     mermaid.render(id, code)
       .then(({ svg: rendered }) => {
-        setSvg(rendered);
+        // Strip the mermaid background rect so the SVG is transparent
+        const clean = rendered.replace(/<rect[^>]*class="[^"]*background[^"]*"[^>]*\/?>/g, '')
+          .replace(/(<svg[^>]*>)\s*<rect[^>]*fill="[^"]*"[^>]*\/?>/g, '$1');
+        setSvg(clean);
         document.getElementById(id)?.remove();
       })
       .catch(e => {
@@ -37,10 +41,39 @@ function MermaidBlock({ code }: { code: string }) {
   }
   if (!svg) return <div className="my-4 text-slate-400 text-xs italic">Rendering diagram…</div>;
   return (
-    <div
-      className="my-4 flex justify-center overflow-x-auto rounded-lg bg-white p-2"
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <>
+      <div
+        className="my-4 flex justify-center overflow-x-auto rounded-lg p-2 transition-opacity hover:opacity-90"
+        style={{ cursor: 'zoom-in', background: 'transparent' }}
+        title="Click to zoom"
+        onClick={() => setZoomed(true)}
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+      {zoomed && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setZoomed(false)}
+        >
+          <div
+            className="relative w-[60vw] h-[60vh] bg-white rounded-2xl shadow-2xl p-8 overflow-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setZoomed(false)}
+              className="absolute top-3 right-3 text-slate-400 hover:text-slate-700 text-xl font-bold leading-none"
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <div
+              className="flex justify-center items-center w-full h-full"
+              dangerouslySetInnerHTML={{ __html: svg }}
+            />
+            <p className="absolute bottom-3 left-0 right-0 text-center text-[10px] text-slate-400 uppercase tracking-widest">Click outside to close</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -84,9 +117,7 @@ function hello(name) {
 
 > Blockquote: *"Write once, preview instantly."*
 
----
 
-Supports **CommonMark** + **GFM** (GitHub Flavored Markdown) + **Mermaid** diagrams.
 
 ## Mermaid Diagram
 
@@ -96,6 +127,36 @@ flowchart LR
     B --> C[Output]
     B --> D[Error]
 \`\`\`
+
+
+
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant Database
+
+    Client ->> Server: Submit login details
+    activate Server
+
+    Server ->> Database: Query user credentials
+    activate Database
+
+    Database -->> Server: Return result (valid/invalid)
+    deactivate Database
+
+    alt If valid credentials
+        Server -->> Client: Authentication successful message
+    else If invalid credentials
+        Server -->> Client: Error message (invalid credentials)
+    end
+
+    deactivate Server
+
+\`\`\`
+
+---
+Supports **CommonMark** + **GFM** (GitHub Flavored Markdown) + **Mermaid** diagrams.
 `;
 
 const EXPORT_STYLES = `
