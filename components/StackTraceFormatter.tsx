@@ -53,7 +53,7 @@ function detectLanguage(input: string): StackLanguage {
   if (/^\s+at .+\(.+\.java:\d+\)/m.test(input)) return 'java';
   if (/Traceback \(most recent call last\)/m.test(input) || /^\s+File ".+", line \d+/m.test(input)) return 'python';
   if (/^\s+at .+\(.*\.(js|ts|jsx|tsx|mjs|cjs):\d+:\d+\)/m.test(input) || /^\s+at .+:\d+:\d+$/m.test(input)) return 'javascript';
-  if (/^\s+at .+ in .+\.cs:line \d+/m.test(input) || /System\.\w+Exception/m.test(input)) return 'dotnet';
+  if (/^\s+at .+ in .+\.cs:line \d+/m.test(input) || /System\.\w+Exception/m.test(input) || /Microsoft\.[\w.]+(?:Exception|Error)/m.test(input)) return 'dotnet';
   if (/goroutine \d+ \[/m.test(input) || /\.go:\d+/m.test(input)) return 'go';
   if (/from .+\.rb:\d+/m.test(input) || /\.rb:\d+:in `/m.test(input)) return 'ruby';
   // JS fallback: "at something (file:line:col)"
@@ -239,7 +239,7 @@ const SAMPLE = `TypeError: Cannot read properties of null (reading 'value')
 export default function StackTraceFormatter() {
   const [input, setInput] = useState('');
   const [copied, setCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('user');
 
   const parsed = useMemo(() => (input.trim() ? parseTrace(input) : null), [input]);
 
