@@ -68,7 +68,7 @@ function parseTrace(input: string): ParsedTrace {
   const patterns = INTERNAL[language];
   const frames: StackFrame[] = [];
 
-  for (const raw of input.split('\n')) {
+  for (const raw of input.replace(/\\n/g, '\n').split('\n')) {
     const trimmed = raw.trim();
 
     if (!trimmed) {
