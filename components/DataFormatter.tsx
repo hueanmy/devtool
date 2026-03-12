@@ -75,36 +75,37 @@ export default function DataFormatter() {
       </section>
 
       <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">SQL Structure</label>
-            <select
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
-              value={sqlFormat}
-              onChange={e => setSqlFormat(e.target.value as SqlFormat)}
-            >
-              <option value={SqlFormat.IN_CLAUSE}>IN (...) CLAUSE</option>
-              <option value={SqlFormat.VALUES_LIST}>VALUES (...) LIST</option>
-              <option value={SqlFormat.UNION_SELECT}>UNION SELECTS</option>
-              <option value={SqlFormat.JSON_ARRAY}>JSON ARRAY</option>
-              <option value={SqlFormat.RAW_CSV}>RAW CSV</option>
-            </select>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Quote Style</label>
-            <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-              {(['single', 'double', 'none'] as const).map(q => (
-                <button
-                  key={q}
-                  onClick={() => setOption('quotes', q)}
-                  className={`flex-1 py-2 px-3 text-[10px] font-black rounded-lg uppercase transition-all ${
-                    options.quotes === q ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  {q}
-                </button>
-              ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">SQL Structure</label>
+              <select
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                value={sqlFormat}
+                onChange={e => setSqlFormat(e.target.value as SqlFormat)}
+              >
+                <option value={SqlFormat.IN_CLAUSE}>IN (...) CLAUSE</option>
+                <option value={SqlFormat.VALUES_LIST}>VALUES (...) LIST</option>
+                <option value={SqlFormat.UNION_SELECT}>UNION SELECTS</option>
+                <option value={SqlFormat.JSON_ARRAY}>JSON ARRAY</option>
+                <option value={SqlFormat.RAW_CSV}>RAW CSV</option>
+              </select>
+            </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Quote Style</label>
+              <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                {(['single', 'double', 'none'] as const).map(q => (
+                  <button
+                    key={q}
+                    onClick={() => setOption('quotes', q)}
+                    className={`flex-1 py-2 px-3 text-[10px] font-black rounded-lg uppercase transition-all ${
+                      options.quotes === q ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

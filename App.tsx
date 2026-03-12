@@ -25,7 +25,7 @@ const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
   { id: 'markdown',      label: 'Markdown',        icon: <FileText size={16} /> },
   { id: 'stacktrace',   label: 'Stack Trace',     icon: <AlertTriangle size={16} /> },
   { id: 'metadata',      label: 'Binary Metadata', icon: <i className="fa-solid fa-fingerprint text-[16px]" /> },
-  { id: 'queryplan',     label: 'SQL Query Plan',  icon: <i className="fa-solid fa-diagram-project text-[16px]" /> },
+  { id: 'queryplan',     label: 'Query Plan',      icon: <i className="fa-solid fa-diagram-project text-[16px]" /> },
 ];
 
 const App: React.FC = () => {
