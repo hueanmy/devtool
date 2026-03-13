@@ -31,7 +31,16 @@ const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
 ];
 
 const App: React.FC = () => {
-  const [mode, setMode] = useState<AppMode>('dataformatter');
+  const [mode, setMode] = useState<AppMode>(() => {
+    const saved = localStorage.getItem('devtoolkit:lastTab');
+    const valid: AppMode[] = ['privacy','metadata','queryplan','dataformatter','listcleaner','sqlformatter','jsontools','markdown','stacktrace','mockdata'];
+    return valid.includes(saved as AppMode) ? (saved as AppMode) : 'dataformatter';
+  });
+
+  const switchMode = (next: AppMode) => {
+    setMode(next);
+    localStorage.setItem('devtoolkit:lastTab', next);
+  };
   const [session, setSession] = useState<ImageFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,9 +69,9 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col selection:bg-blue-500/30">
       <header className="no-print border-b border-slate-200 glass sticky top-0 z-50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+        <div className="w-full flex items-center justify-between gap-4 flex-wrap">
           <button
-            onClick={() => setMode('dataformatter')}
+            onClick={() => switchMode('dataformatter')}
             className="flex items-center gap-4 shrink-0 hover:opacity-80 transition-opacity"
             aria-label="Go to home"
           >
@@ -79,7 +88,7 @@ const App: React.FC = () => {
             {NAV_TABS.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setMode(tab.id)}
+                onClick={() => switchMode(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all ${
                   mode === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
@@ -92,7 +101,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto w-full px-6 py-8">
+      <main className="w-full px-6 py-8">
         <input
           ref={fileInputRef}
           type="file"
@@ -140,7 +149,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="no-print mt-8 border-t border-slate-200 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="w-full px-6 py-8">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
             <FooterTech icon="fa-solid fa-fingerprint" name="ExifTool" desc="Binary metadata extraction via @uswriting/exiftool + WebAssembly" />
             <FooterTech icon="fa-solid fa-diagram-project" name="SQL Plan Viewer" desc="html-query-plan renderer + Gemini AI analysis via @google/genai" />
@@ -158,7 +167,7 @@ const App: React.FC = () => {
                 <span key={t} className="text-[10px] text-slate-400 font-semibold">{t}</span>
               ))}
               <button
-                onClick={() => setMode('privacy')}
+                onClick={() => switchMode('privacy')}
                 className="text-[10px] text-blue-400 hover:text-blue-600 font-bold transition-colors"
               >
                 Privacy Policy
