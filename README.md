@@ -13,7 +13,7 @@ A local-first developer toolkit. Eight professional-grade tools that run 100% in
 | **Markdown Preview** | Live GFM editor with tables, task lists, and syntax-highlighted code blocks |
 | **Binary Metadata** | Drop any file to extract EXIF/XMP/IPTC tags via WebAssembly ExifTool |
 | **SQL Query Plan** | Visualize SQL Server execution plans with optional Gemini AI analysis |
-| **Stack Trace Formatter** | Parse and display .NET/C# stack traces with user code highlighting and EF Core support |
+| **Stack Trace Formatter** | Parse and display .NET/C#/js ... stack traces with user code highlighting and EF Core support |
 
 ## Getting Started
 
@@ -21,8 +21,6 @@ A local-first developer toolkit. Eight professional-grade tools that run 100% in
 npm install
 npm run dev
 ```
-
-Open [http://localhost:5173](http://localhost:5173).
 
 ## Tech Stack
 
