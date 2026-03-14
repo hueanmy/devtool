@@ -569,7 +569,7 @@ export default function MockDataGenerator() {
         {(['generator', 'import'] as const).map(tab => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => { setActiveTab(tab); if (tab === 'import') setRows(1); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
               activeTab === tab ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
@@ -588,6 +588,10 @@ export default function MockDataGenerator() {
               <span className="bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm">{fields.length} FIELDS</span>
             </span>
             <div className="flex items-center gap-2">
+              <button onClick={addField} title="Add field"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors uppercase tracking-widest">
+                <Plus size={12} /> Add Field
+              </button>
               <button onClick={savePreset} title="Save preset" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                 <Save size={14} />
               </button>
@@ -724,10 +728,6 @@ export default function MockDataGenerator() {
               ))}
             </div>
 
-            <button onClick={addField}
-              className="mt-4 flex items-center gap-2 px-4 py-2 text-[10px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors uppercase tracking-widest">
-              <Plus size={13} /> Add Field
-            </button>
           </div>
         </section>
       ) : (
