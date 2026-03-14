@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Plus, Trash2, Download, Copy, Check, Play,
   FileJson, FileText, Database, LayoutTemplate, Save,
@@ -453,25 +453,16 @@ export default function MockDataGenerator() {
     else if (importedTree.children) setImportedTree({ ...importedTree, children: updateNode(importedTree.children) });
   };
 
-  const [justAddedId, setJustAddedId] = useState<string | null>(null);
-  const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const fieldsListRef = useRef<HTMLDivElement>(null);
 
   const addField = () => {
-    const id = newId();
-    setFields(prev => [...prev, { id, name: `field_${prev.length + 1}`, type: 'Word' }]);
-    setJustAddedId(id);
+    setFields(prev => [...prev, { id: newId(), name: `field_${prev.length + 1}`, type: 'Word' }]);
+    setTimeout(() => {
+      if (fieldsListRef.current) {
+        fieldsListRef.current.scrollTop = fieldsListRef.current.scrollHeight;
+      }
+    }, 0);
   };
-
-  useEffect(() => {
-    if (!justAddedId) return;
-    const input = fieldInputRefs.current[justAddedId];
-    if (input) {
-      input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      input.focus();
-      input.select();
-      setJustAddedId(null);
-    }
-  }, [justAddedId, fields]);
   const removeField = (id: string) => setFields(prev => prev.filter(f => f.id !== id));
   const updateField = (id: string, updates: Partial<MockField>) =>
     setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
@@ -602,8 +593,8 @@ export default function MockDataGenerator() {
       </div>
 
       {activeTab === 'generator' ? (
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col max-h-[65vh]">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 rounded-t-2xl">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Settings2 size={14} /> Schema Definition
               <span className="bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm">{fields.length} FIELDS</span>
@@ -653,7 +644,7 @@ export default function MockDataGenerator() {
             </div>
           </div>
 
-          <div className="p-4">
+          <div ref={fieldsListRef} className="flex-1 overflow-y-auto p-4">
             <div className="grid grid-cols-12 gap-2 mb-3 px-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
               <div className="col-span-2">Name</div>
               <div className="col-span-2">Type</div>
@@ -663,13 +654,12 @@ export default function MockDataGenerator() {
               <div className="col-span-1 text-center">Del</div>
             </div>
 
-            <div className="space-y-2 overflow-y-auto pr-1">
+            <div className="space-y-2 pr-1">
               {fields.map(field => (
                 <div key={field.id} className="grid grid-cols-12 gap-2 items-center group">
                   <div className="col-span-2">
                     <input
                       type="text" value={field.name} placeholder="field_name"
-                      ref={el => { fieldInputRefs.current[field.id] = el; }}
                       onChange={e => updateField(field.id, { name: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none"
                     />
