@@ -106,6 +106,7 @@ export interface FieldOptions {
   customValues?: string;
   nullPercentage?: number;
   factor?: string;
+  arrayCount?: number;
 }
 
 export interface MockField {

@@ -129,6 +129,7 @@ type JsonNode = {
   mappedType: FieldType;
   children?: JsonNode[];
   isLoop?: boolean;
+  loopCount?: number;
   depth: number;
 };
 
@@ -177,12 +178,17 @@ const flattenTree = (nodes: JsonNode[], prefix = ''): MockField[] => {
       fields = [...fields, ...flattenTree(node.children, currentPath)];
     } else if (node.originalType === 'array' && node.children && node.children.length > 0) {
       const child = node.children[0];
+      const loopCount = node.loopCount ?? 1;
       if (child.originalType === 'object' && child.children) {
-        fields = [...fields, ...flattenTree(child.children, `${currentPath}[0]`)];
+        // Array of objects: expand N times; unflattenObject merges [0],[1],... into a real array
+        for (let i = 0; i < loopCount; i++) {
+          fields = [...fields, ...flattenTree(child.children, `${currentPath}[${i}]`)];
+        }
       } else {
-        fields.push({ id: child.id, name: `${currentPath}[0]`, type: child.mappedType });
+        // Array of scalars: keep key name, generate an actual array via arrayCount
+        fields.push({ id: child.id, name: currentPath, type: child.mappedType, options: { arrayCount: loopCount } });
       }
-    } else if (node.originalType !== 'object' && node.originalType !== 'array' && node.originalType !== 'null') {
+    } else if (node.originalType !== 'object' && node.originalType !== 'array') {
       fields.push({ id: node.id, name: currentPath, type: node.mappedType });
     }
   });
@@ -199,16 +205,24 @@ const getFlatFieldsFromTree = (root: JsonNode): MockField[] => {
   return [];
 };
 
-const TreeNodeRow: React.FC<{ node: JsonNode; onUpdateType: (id: string, type: FieldType) => void; isRoot?: boolean }> = ({ node, onUpdateType, isRoot = false }) => {
+const TreeNodeRow: React.FC<{
+  node: JsonNode;
+  onUpdateType: (id: string, type: FieldType) => void;
+  onUpdateLoop: (id: string, count: number) => void;
+  isRoot?: boolean;
+}> = ({ node, onUpdateType, onUpdateLoop, isRoot = false }) => {
   const [expanded, setExpanded] = useState(true);
   const isComplex = node.originalType === 'object' || node.originalType === 'array';
   if (isRoot && node.key === 'root') {
     return (
       <div className="flex flex-col">
-        {node.children?.map(child => <TreeNodeRow key={child.id} node={child} onUpdateType={onUpdateType} />)}
+        {node.children?.map(child => (
+          <TreeNodeRow key={child.id} node={child} onUpdateType={onUpdateType} onUpdateLoop={onUpdateLoop} />
+        ))}
       </div>
     );
   }
+  const isNullType = node.originalType === 'null';
   return (
     <div className="flex flex-col">
       <div className="flex items-center py-2 border-b border-slate-100 hover:bg-slate-50">
@@ -224,14 +238,26 @@ const TreeNodeRow: React.FC<{ node: JsonNode; onUpdateType: (id: string, type: F
               <AlertTriangle size={10} /> Loop
             </span>
           )}
-          <span className="ml-3 text-[10px] text-slate-400 font-mono">{node.originalType}</span>
+          {isNullType ? (
+            <span className="ml-3 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black bg-red-100 text-red-600">
+              Empty
+            </span>
+          ) : (
+            <span className="ml-3 text-[10px] text-slate-400 font-mono">{node.originalType}</span>
+          )}
         </div>
-        <div className="w-56 px-4">
-          {!isComplex && !node.isLoop && node.originalType !== 'null' && (
+
+        {/* Mapped Type */}
+        <div className="w-44 px-4">
+          {!isComplex && !node.isLoop && (
             <select
               value={node.mappedType}
               onChange={e => onUpdateType(node.id, e.target.value as FieldType)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-black focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+              className={`w-full rounded-lg px-2 py-1.5 text-xs font-black focus:ring-2 outline-none cursor-pointer ${
+                isNullType
+                  ? 'bg-red-50 border-2 border-red-400 text-red-700 focus:ring-red-400'
+                  : 'bg-slate-50 border border-slate-200 focus:ring-blue-500'
+              }`}
             >
               {categories.map(category => (
                 <optgroup key={category} label={category}>
@@ -243,10 +269,27 @@ const TreeNodeRow: React.FC<{ node: JsonNode; onUpdateType: (id: string, type: F
             </select>
           )}
         </div>
+
+        {/* Loop */}
+        <div className="w-24 px-4">
+          {node.originalType === 'array' && !node.isLoop ? (
+            <input
+              type="number" min={1} max={50}
+              value={node.loopCount ?? 1}
+              onChange={e => onUpdateLoop(node.id, Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+              title="Number of array items to generate"
+            />
+          ) : (
+            <span className="text-[10px] text-slate-300 px-1">—</span>
+          )}
+        </div>
       </div>
       {expanded && node.children && (
         <div className="flex flex-col">
-          {node.children.map(child => <TreeNodeRow key={child.id} node={child} onUpdateType={onUpdateType} />)}
+          {node.children.map(child => (
+            <TreeNodeRow key={child.id} node={child} onUpdateType={onUpdateType} onUpdateLoop={onUpdateLoop} />
+          ))}
         </div>
       )}
     </div>
@@ -398,6 +441,18 @@ export default function MockDataGenerator() {
     else if (importedTree.children) setImportedTree({ ...importedTree, children: updateNode(importedTree.children) });
   };
 
+  const handleUpdateTreeNodeLoop = (id: string, count: number) => {
+    if (!importedTree) return;
+    const updateNode = (nodes: JsonNode[]): JsonNode[] =>
+      nodes.map(node => {
+        if (node.id === id) return { ...node, loopCount: count };
+        if (node.children) return { ...node, children: updateNode(node.children) };
+        return node;
+      });
+    if (importedTree.id === id) setImportedTree({ ...importedTree, loopCount: count });
+    else if (importedTree.children) setImportedTree({ ...importedTree, children: updateNode(importedTree.children) });
+  };
+
   const addField = () => setFields(prev => [...prev, { id: newId(), name: `field_${prev.length + 1}`, type: 'Word' }]);
   const removeField = (id: string) => setFields(prev => prev.filter(f => f.id !== id));
   const updateField = (id: string, updates: Partial<MockField>) =>
@@ -441,11 +496,11 @@ export default function MockDataGenerator() {
       <div className="flex flex-col gap-1">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Rows</label>
         <input
-          type="number" min={1} max={10000} value={rows}
-          onChange={e => setRows(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
+          type="number" min={1} max={50000} value={rows}
+          onChange={e => setRows(Math.min(50000, Math.max(1, parseInt(e.target.value) || 1)))}
           className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
         />
-        <span className="text-[10px] text-slate-400">Max 10,000 rows</span>
+        <span className="text-[10px] text-slate-400">Max 50,000 rows</span>
       </div>
 
       <div className="flex flex-col gap-1">
@@ -705,10 +760,11 @@ export default function MockDataGenerator() {
             </div>
             <div className="flex items-center px-6 py-3 bg-slate-50 border-b border-slate-200">
               <div className="flex-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">Field / Structure</div>
-              <div className="w-56 px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Mapped Type</div>
+              <div className="w-44 px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Mapped Type</div>
+              <div className="w-24 px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Loop</div>
             </div>
             <div className="max-h-[360px] overflow-y-auto p-2">
-              <TreeNodeRow node={importedTree} onUpdateType={handleUpdateTreeNode} isRoot />
+              <TreeNodeRow node={importedTree} onUpdateType={handleUpdateTreeNode} onUpdateLoop={handleUpdateTreeNodeLoop} isRoot />
             </div>
           </section>
         )

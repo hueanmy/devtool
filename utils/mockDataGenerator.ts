@@ -187,22 +187,28 @@ const unflattenObject = (data: Record<string, any>): Record<string, any> => {
     let current = result;
     const keys = p.split('.');
     for (let i = 0; i < keys.length; i++) {
-      let key = keys[i];
-      const isArray = key.endsWith('[0]');
-      if (isArray) key = key.slice(0, -3);
+      const rawKey = keys[i];
+      const arrMatch = rawKey.match(/^(.+)\[(\d+)\]$/);
+      const key = arrMatch ? arrMatch[1] : rawKey;
+      const idx = arrMatch ? parseInt(arrMatch[2], 10) : -1;
+      const isArr = arrMatch !== null;
 
       if (i === keys.length - 1) {
-        if (isArray) {
-          current[key] = [data[p]];
+        if (isArr) {
+          if (!Array.isArray(current[key])) current[key] = [];
+          current[key][idx] = data[p];
         } else {
           current[key] = data[p];
         }
       } else {
-        if (isArray) {
-          current[key] = current[key] || [{}];
-          current = current[key][0];
+        if (isArr) {
+          if (!Array.isArray(current[key])) current[key] = [];
+          if (current[key][idx] === undefined) current[key][idx] = {};
+          current = current[key][idx];
         } else {
-          current[key] = current[key] || {};
+          if (!current[key] || typeof current[key] !== 'object' || Array.isArray(current[key])) {
+            current[key] = {};
+          }
           current = current[key];
         }
       }
@@ -235,7 +241,13 @@ export const generateData = (
   for (let i = 0; i < rows; i++) {
     const row: Record<string, any> = {};
     fields.forEach(field => {
-      row[field.name] = fieldNullIndices[field.id]?.has(i) ? '' : generateValue(field);
+      if (fieldNullIndices[field.id]?.has(i)) {
+        row[field.name] = '';
+      } else if (field.options?.arrayCount) {
+        row[field.name] = Array.from({ length: field.options.arrayCount }, () => generateValue(field));
+      } else {
+        row[field.name] = generateValue(field);
+      }
     });
     data.push(row);
   }
