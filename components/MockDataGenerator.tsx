@@ -310,7 +310,7 @@ const PRESETS = {
     { name: 'currency', type: 'CurrencyCode' as FieldType },
     { name: 'in_stock', type: 'Boolean' as FieldType },
     { name: 'stock_quantity', type: 'Number' as FieldType, options: { min: 0, max: 1000 } },
-    { name: 'color', type: 'Color' as FieldType, options: { nullPercentage: 15 } },
+    { name: 'color', type: 'CustomList' as FieldType, options: { customValues: 'Red, Green, Blue', factor: 'Red=30, Green=30, Blue=40', nullPercentage: 15 } },
     { name: 'manufacturer', type: 'Company' as FieldType },
     { name: 'rating', type: 'Number' as FieldType, options: { min: 1, max: 5, nullPercentage: 30 } },
     { name: 'created_at', type: 'Date' as FieldType },
@@ -649,8 +649,8 @@ export default function MockDataGenerator() {
               <div className="col-span-2">Name</div>
               <div className="col-span-2">Type</div>
               <div className="col-span-3">Options</div>
-              <div className="col-span-3">Factor</div>
-              <div className="col-span-1">Null %</div>
+              <div className="col-span-2">Factor</div>
+              <div className="col-span-2">Null %</div>
               <div className="col-span-1 text-center">Del</div>
             </div>
 
@@ -710,7 +710,7 @@ export default function MockDataGenerator() {
                       <span className="text-[10px] text-slate-300 italic px-1">—</span>
                     )}
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-2">
                     {(field.type === 'CustomList' || field.type === 'Number') ? (
                       <input type="text" placeholder="Apple=30, Orange=50" title="Weighted distribution"
                         value={field.options?.factor ?? ''}
@@ -720,7 +720,7 @@ export default function MockDataGenerator() {
                       <span className="text-[10px] text-slate-300 italic px-1">N/A</span>
                     )}
                   </div>
-                  <div className="col-span-1">
+                  <div className="col-span-2">
                     <div className="relative">
                       <input type="number" min={0} max={100} placeholder="0" title="Percentage of null values"
                         value={field.options?.nullPercentage ?? ''}
