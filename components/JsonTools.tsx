@@ -3,13 +3,15 @@ import ResizableSplit from './ResizableSplit';
 import {
   Braces, Layers, Copy, Check, Maximize2, Minimize2, AlertCircle,
   Upload, Wrench, GitCompare, ChevronRight, ChevronDown, Plus, Minus,
-  RefreshCw, TreePine, Code2, Quote,
+  RefreshCw, TreePine, Code2, Quote, ArrowLeftRight,
 } from 'lucide-react';
 import { jsonrepair } from 'jsonrepair';
+import JsonDiffV2, { findDiffs, type DiffItem } from './JsonDiffV2';
 
 // --- Types ---
 
 type JsonTab = 'format' | 'diff' | 'ts';
+type DiffViewMode = 'tree' | 'sidebyside';
 type OutputMode = 'text' | 'tree' | 'string';
 type DiffType = 'added' | 'removed' | 'changed' | 'nested';
 
@@ -376,10 +378,12 @@ export default function JsonTools() {
   const [tsNaming, setTsNaming] = useState<NamingConvention>('camel');
 
   // Diff
+  const [diffViewMode, setDiffViewMode] = useState<DiffViewMode>('sidebyside');
   const [diffBefore, setDiffBefore] = useState('');
   const [diffAfter, setDiffAfter] = useState('');
   const [diffEntries, setDiffEntries] = useState<DiffEntry[] | null>(null);
   const [diffError, setDiffError] = useState<string | null>(null);
+  const [v2Parsed, setV2Parsed] = useState<{ a: any; b: any; diffs: DiffItem[] } | null>(null);
 
   // --- Format handlers ---
 
@@ -468,10 +472,30 @@ export default function JsonTools() {
   const handleDiff = () => {
     setDiffError(null);
     setDiffEntries(null);
+    setV2Parsed(null);
     try {
       const a = JSON.parse(diffBefore.trim() || '{}');
       const b = JSON.parse(diffAfter.trim() || '{}');
       setDiffEntries(computeDiff(a, b));
+      setV2Parsed({ a, b, diffs: findDiffs(a, b) });
+    } catch (e: unknown) {
+      setDiffError(e instanceof Error ? e.message : 'Invalid JSON in one or both inputs');
+    }
+  };
+
+  const handleDiffSwap = () => {
+    const newBefore = diffAfter;
+    const newAfter = diffBefore;
+    setDiffBefore(newBefore);
+    setDiffAfter(newAfter);
+    setDiffError(null);
+    setDiffEntries(null);
+    setV2Parsed(null);
+    try {
+      const a = JSON.parse(newBefore.trim() || '{}');
+      const b = JSON.parse(newAfter.trim() || '{}');
+      setDiffEntries(computeDiff(a, b));
+      setV2Parsed({ a, b, diffs: findDiffs(a, b) });
     } catch (e: unknown) {
       setDiffError(e instanceof Error ? e.message : 'Invalid JSON in one or both inputs');
     }
@@ -763,6 +787,7 @@ export default function JsonTools() {
       {/* ── DIFF TAB ── */}
       {tab === 'diff' && (
         <div className="space-y-6">
+          {/* Shared inputs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {(['Before', 'After'] as const).map((label, idx) => {
               const value = idx === 0 ? diffBefore : diffAfter;
@@ -786,22 +811,59 @@ export default function JsonTools() {
             })}
           </div>
 
-          <div className="flex justify-center">
+          {/* Shared actions */}
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={handleDiffSwap}
+              className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-5 py-3 rounded-xl bg-white transition-colors"
+              title="Swap Before and After"
+            >
+              <ArrowLeftRight size={14} /> Swap
+            </button>
             <button
               onClick={handleDiff}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-black px-8 py-3 rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-100"
             >
-              <GitCompare size={16} /> Compare JSON
+              <GitCompare size={16} /> Compare
             </button>
           </div>
 
+          {/* Shared error */}
           {diffError && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-600 text-xs font-bold">
               <AlertCircle size={14} /> {diffError}
             </div>
           )}
 
-          {diffEntries !== null && (
+          {/* View mode toggle (only show after compare) */}
+          {(diffEntries !== null || v2Parsed !== null) && (
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit gap-0.5">
+              <button
+                onClick={() => setDiffViewMode('sidebyside')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  diffViewMode === 'sidebyside' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Layers size={13} /> Side by Side
+              </button>
+              <button
+                onClick={() => setDiffViewMode('tree')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  diffViewMode === 'tree' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <TreePine size={13} /> Tree
+              </button>
+            </div>
+          )}
+
+          {/* Side by Side result */}
+          {diffViewMode === 'sidebyside' && v2Parsed && (
+            <JsonDiffV2 a={v2Parsed.a} b={v2Parsed.b} diffs={v2Parsed.diffs} />
+          )}
+
+          {/* Tree result */}
+          {diffViewMode === 'tree' && diffEntries !== null && (
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
               <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Diff Result</span>
