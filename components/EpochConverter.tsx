@@ -1,26 +1,128 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Clock, Copy, Check, Layers, ArrowLeftRight } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { Clock, Copy, Check, Layers, ArrowLeftRight, Search, ChevronDown } from 'lucide-react';
 import ResizableSplit from './ResizableSplit';
 
 // ── Timezones ────────────────────────────────────────────────────────────────
 
-const COMMON_TIMEZONES = [
-  'UTC',
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'Europe/London',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Asia/Tokyo',
-  'Asia/Shanghai',
-  'Asia/Ho_Chi_Minh',
-  'Asia/Kolkata',
-  'Asia/Singapore',
-  'Australia/Sydney',
+interface TzEntry { id: string; offset: string; label: string; pinned: boolean }
+
+const PINNED = new Set([
+  'UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+  'America/Sao_Paulo', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow',
+  'Europe/Istanbul', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Ho_Chi_Minh',
+  'Asia/Shanghai', 'Asia/Tokyo', 'Asia/Seoul', 'Asia/Singapore', 'Australia/Sydney',
   'Pacific/Auckland',
-];
+]);
+
+function getUtcOffset(tz: string): string {
+  try {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' }).formatToParts(now);
+    const offset = parts.find(p => p.type === 'timeZoneName')?.value || '';
+    return offset.replace('GMT', 'UTC');
+  } catch { return ''; }
+}
+
+const TZ_LIST: TzEntry[] = (() => {
+  let ids: string[];
+  try { ids = Intl.supportedValuesOf('timeZone'); }
+  catch { ids = [...PINNED]; }
+
+  const entries: TzEntry[] = ids.map(id => ({
+    id,
+    offset: getUtcOffset(id),
+    label: `${id.replace(/_/g, ' ')}`,
+    pinned: PINNED.has(id),
+  }));
+
+  const pinned = entries.filter(e => e.pinned);
+  const rest = entries.filter(e => !e.pinned);
+  return [...pinned, ...rest];
+})();
+
+// ── Searchable Timezone Picker ───────────────────────────────────────────────
+
+function TzPicker({ value, onChange }: { value: string; onChange: (tz: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  useEffect(() => {
+    if (open) { inputRef.current?.focus(); setQuery(''); }
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return TZ_LIST;
+    const q = query.toLowerCase();
+    return TZ_LIST.filter(e =>
+      e.id.toLowerCase().includes(q) || e.offset.toLowerCase().includes(q) || e.label.toLowerCase().includes(q)
+    );
+  }, [query]);
+
+  const current = TZ_LIST.find(e => e.id === value);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none hover:border-slate-300 transition-colors"
+      >
+        <span className="truncate">
+          {current ? <>{current.id} <span className="text-blue-500 font-bold">{current.offset}</span></> : value}
+        </span>
+        <ChevronDown size={14} className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <Search size={13} className="text-slate-400 shrink-0" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search timezone..."
+                className="flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-slate-300"
+              />
+            </div>
+          </div>
+          <div className="max-h-64 overflow-auto">
+            {filtered.length === 0 && (
+              <div className="px-4 py-3 text-xs text-slate-400 text-center">No matches</div>
+            )}
+            {filtered.map((e, i) => {
+              const showSeparator = i > 0 && filtered[i - 1].pinned && !e.pinned;
+              return (
+                <div key={e.id}>
+                  {showSeparator && <div className="border-t border-slate-100 mx-3" />}
+                  <button
+                    onClick={() => { onChange(e.id); setOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-xs font-mono flex items-center justify-between hover:bg-blue-50 transition-colors ${
+                      e.id === value ? 'bg-blue-50 text-blue-700' : 'text-slate-700'
+                    }`}
+                  >
+                    <span className="truncate">{e.id.replace(/_/g, ' ')}</span>
+                    <span className={`shrink-0 ml-2 font-bold ${e.id === value ? 'text-blue-500' : 'text-slate-400'}`}>{e.offset}</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -164,15 +266,7 @@ export default function EpochConverter() {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">
                   Display Timezone
                 </label>
-                <select
-                  value={tz}
-                  onChange={e => setTz(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  {COMMON_TIMEZONES.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                <TzPicker value={tz} onChange={setTz} />
               </section>
             )}
 
