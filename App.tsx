@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
-import { Filter, ListFilter, Code2, Braces, FileText, AlertTriangle, Database, Key, Replace, Workflow, Clock } from 'lucide-react';
+import { Filter, ListFilter, Code2, Braces, FileText, AlertTriangle, Database, Key, Replace, Workflow, Clock, Palette, Timer, ScrollText } from 'lucide-react';
 import { ImageFile } from './types';
 import { extractMetadata, zeroperlWasmUrl } from './utils/exifParser';
 import MetadataExplorer from './components/MetadataExplorer';
@@ -19,8 +19,11 @@ const JwtDecode             = lazy(() => import('./components/JwtDecode'));
 const TextTools             = lazy(() => import('./components/TextTools'));
 const DiagramGenerator      = lazy(() => import('./components/DiagramGenerator'));
 const EpochConverter        = lazy(() => import('./components/EpochConverter'));
+const ColorConverter        = lazy(() => import('./components/ColorConverter'));
+const CronBuilder           = lazy(() => import('./components/CronBuilder'));
+const LogAnalyzer           = lazy(() => import('./components/LogAnalyzer'));
 
-type AppMode = 'privacy' | 'metadata' | 'queryplan' | 'dataformatter' | 'listcleaner' | 'sqlformatter' | 'jsontools' | 'markdown' | 'stacktrace' | 'mockdata' | 'jwtdecode' | 'texttools' | 'diagram' | 'epoch';
+type AppMode = 'privacy' | 'metadata' | 'queryplan' | 'dataformatter' | 'listcleaner' | 'sqlformatter' | 'jsontools' | 'markdown' | 'stacktrace' | 'mockdata' | 'jwtdecode' | 'texttools' | 'diagram' | 'epoch' | 'color' | 'cron' | 'logs';
 
 const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
   { id: 'dataformatter', label: 'Data Formatter',  icon: <Filter size={16} /> },
@@ -33,6 +36,9 @@ const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
   { id: 'jwtdecode',    label: 'JWT Decode',      icon: <Key size={16} /> },
   { id: 'texttools',    label: 'Text Tools',      icon: <Replace size={16} /> },
   { id: 'epoch',        label: 'Epoch Converter', icon: <Clock size={16} /> },
+  { id: 'color',        label: 'Color Converter', icon: <Palette size={16} /> },
+  { id: 'cron',         label: 'Cron Builder',    icon: <Timer size={16} /> },
+  { id: 'logs',         label: 'Log Analyzer',    icon: <ScrollText size={16} /> },
   { id: 'diagram',      label: 'Diagram Generator', icon: <Workflow size={16} /> },
   { id: 'metadata',      label: 'Binary Metadata', icon: <i className="fa-solid fa-fingerprint text-[16px]" /> },
   { id: 'queryplan',     label: 'Query Plan',      icon: <i className="fa-solid fa-diagram-project text-[16px]" /> },
@@ -41,7 +47,7 @@ const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(() => {
     const saved = localStorage.getItem('devtoolkit:lastTab');
-    const valid: AppMode[] = ['privacy','metadata','queryplan','dataformatter','listcleaner','sqlformatter','jsontools','markdown','stacktrace','mockdata','jwtdecode','texttools','diagram','epoch'];
+    const valid: AppMode[] = ['privacy','metadata','queryplan','dataformatter','listcleaner','sqlformatter','jsontools','markdown','stacktrace','mockdata','jwtdecode','texttools','diagram','epoch','color','cron','logs'];
     return valid.includes(saved as AppMode) ? (saved as AppMode) : 'dataformatter';
   });
 
@@ -134,6 +140,9 @@ const App: React.FC = () => {
            mode === 'jwtdecode'   ? <JwtDecode /> :
            mode === 'texttools'   ? <TextTools /> :
            mode === 'epoch'      ? <EpochConverter /> :
+           mode === 'color'     ? <ColorConverter /> :
+           mode === 'cron'      ? <CronBuilder /> :
+           mode === 'logs'      ? <LogAnalyzer /> :
            mode === 'diagram'    ? <DiagramGenerator /> :
            !session ? (
             <DropZone onFile={processFile} error={error} />
@@ -174,6 +183,9 @@ const App: React.FC = () => {
                 <FooterTech icon="fa-solid fa-code" name="SQL Tool" desc="Format, minify and beautify SQL queries with sql-formatter — supports MySQL, PostgreSQL, and more" />
                 <FooterTech icon="fa-solid fa-right-left" name="Text Tools" desc="Log Insights pattern builder (CloudWatch) and Jira release note formatter with configurable base URL" />
                 <FooterTech icon="fa-solid fa-diagram-project" name="Diagram Generator" desc="Generate sequence diagrams and system flowcharts from plain English descriptions using Mermaid.js" />
+                <FooterTech icon="fa-solid fa-palette" name="Color Converter" desc="Convert between HEX, RGB, HSL, OKLCH with visual picker and WCAG contrast checker" />
+                <FooterTech icon="fa-solid fa-clock" name="Cron Builder" desc="Visual cron expression builder with human-readable descriptions and next 10 run times" />
+                <FooterTech icon="fa-solid fa-scroll" name="Log Analyzer" desc="Parse, filter, and analyze logs with auto-format detection, level filtering, and timeline view" />
               </div>
               <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em]">Powered by Coding4Pizza With Love</p>
