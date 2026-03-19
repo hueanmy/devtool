@@ -500,13 +500,17 @@ const DiagramGenerator: React.FC = () => {
   // ── Styles ──
 
   const TAB_CLS = (active: boolean) =>
-    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-      active ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+    `flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-bold transition-all duration-200 ${
+      active
+        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-500/25'
+        : 'text-slate-400 hover:text-white hover:bg-white/5'
     }`;
 
   const INPUT_MODE_CLS = (active: boolean) =>
-    `flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-      active ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'text-slate-500 hover:text-slate-700 border border-transparent hover:border-slate-200'
+    `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+      active
+        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 border border-blue-200/60 shadow-sm shadow-blue-500/10'
+        : 'text-slate-400 hover:text-slate-600 border border-transparent hover:bg-slate-50'
     }`;
 
   // ── Filtered templates ──
@@ -518,9 +522,9 @@ const DiagramGenerator: React.FC = () => {
   // ── Left Panel ──
 
   const leftPanel = (
-    <section className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full">
+    <section className="bg-gradient-to-b from-white to-slate-50/80 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col h-full backdrop-blur-sm">
       {/* Input mode tabs */}
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-1.5 flex-wrap">
+      <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100/50 border-b border-slate-200/60 flex items-center gap-1.5 flex-wrap">
         <button onClick={() => setInputMode('text')} className={INPUT_MODE_CLS(inputMode === 'text')}>
           <GitBranch size={13} /> Text Input
         </button>
@@ -533,8 +537,8 @@ const DiagramGenerator: React.FC = () => {
         <div className="flex-1" />
         <button
           onClick={() => setShowHistory(!showHistory)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-            showHistory ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'text-slate-400 hover:text-slate-600 border border-transparent'
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all duration-200 ${
+            showHistory ? 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-600 border border-amber-200/60 shadow-sm' : 'text-slate-400 hover:text-slate-600 border border-transparent'
           }`}
         >
           <FolderOpen size={12} /> History{history.length > 0 && ` (${history.length})`}
@@ -543,7 +547,7 @@ const DiagramGenerator: React.FC = () => {
 
       {/* History panel (overlay) */}
       {showHistory && (
-        <div className="border-b border-slate-200 bg-amber-50/50 max-h-64 overflow-y-auto">
+        <div className="border-b border-amber-100 bg-gradient-to-b from-amber-50/60 to-orange-50/30 max-h-64 overflow-y-auto">
           {history.length === 0 ? (
             <p className="text-xs text-slate-400 p-4 text-center">No saved diagrams yet.</p>
           ) : (
@@ -580,11 +584,11 @@ const DiagramGenerator: React.FC = () => {
         {/* ── Text Input Mode ── */}
         {inputMode === 'text' && (
           <div className="flex flex-col h-full">
-            <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Describe your system</span>
+            <div className="px-4 py-2.5 flex items-center justify-between border-b border-slate-100">
+              <span className="text-[10px] font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-500 to-slate-400 uppercase tracking-[0.15em]">Describe your system</span>
               <button
                 onClick={() => setTextInput(EXAMPLE_INPUT)}
-                className="text-[10px] font-bold text-blue-500 hover:text-blue-700 transition-colors"
+                className="text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors px-2 py-0.5 rounded-md hover:bg-blue-50"
               >
                 Load Example
               </button>
@@ -595,7 +599,7 @@ const DiagramGenerator: React.FC = () => {
               onChange={e => setTextInput(e.target.value)}
               placeholder="User sends request to API Gateway. API Gateway routes to Auth Service. Auth Service validates token against Redis..."
             />
-            <div className="px-4 py-3 border-t border-slate-200 flex items-center gap-2">
+            <div className="px-4 py-3 border-t border-slate-200/60 bg-gradient-to-r from-white to-slate-50/50 flex items-center gap-2">
               {/* Diagram type for NLP */}
               <select
                 value={diagramType}
@@ -622,7 +626,7 @@ const DiagramGenerator: React.FC = () => {
               <button
                 onClick={handleGenerateFromText}
                 disabled={loading || !textInput.trim()}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-sm shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 {loading ? <><Loader2 size={13} className="animate-spin" /> Generating...</> : <><Play size={13} /> Generate</>}
               </button>
@@ -646,8 +650,8 @@ const DiagramGenerator: React.FC = () => {
             <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 onClick={() => setTemplateFilter('all')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
-                  templateFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all duration-200 ${
+                  templateFilter === 'all' ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm shadow-blue-500/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
               >
                 All
@@ -657,7 +661,7 @@ const DiagramGenerator: React.FC = () => {
                   key={cat}
                   onClick={() => setTemplateFilter(cat)}
                   className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
-                    templateFilter === cat ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    templateFilter === cat ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm shadow-blue-500/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                   }`}
                 >
                   {CATEGORY_LABELS[cat]}
@@ -671,11 +675,11 @@ const DiagramGenerator: React.FC = () => {
                 <button
                   key={t.id}
                   onClick={() => handleLoadTemplate(t)}
-                  className="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
+                  className="text-left p-3.5 rounded-xl border border-slate-200/80 hover:border-blue-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/30 transition-all duration-200 group hover:shadow-sm hover:shadow-blue-500/5"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-black text-slate-700 group-hover:text-blue-600">{t.name}</span>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400 uppercase">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-slate-100 to-slate-50 text-slate-400 uppercase border border-slate-200/50">
                       {DIAGRAM_TYPE_LABELS[t.diagramType]}
                     </span>
                   </div>
@@ -827,7 +831,7 @@ const DiagramGenerator: React.FC = () => {
             <button
               onClick={handleBuildFromEditor}
               disabled={editorNodes.length === 0}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-sm shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
             >
               <Play size={13} /> Build Diagram
             </button>
@@ -848,11 +852,11 @@ const DiagramGenerator: React.FC = () => {
   // ── Right Panel ──
 
   const rightPanel = (
-    <section className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 flex flex-col h-full">
-      <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-800 flex flex-col gap-2">
+    <section className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 rounded-2xl shadow-2xl border border-slate-700/50 flex flex-col h-full">
+      <div className="px-4 py-3 bg-gradient-to-r from-slate-800/60 to-slate-800/30 border-b border-slate-700/50 flex flex-col gap-2 backdrop-blur-sm">
         {/* View toggle + actions */}
         <div className="flex items-center justify-between">
-          <div className="flex bg-slate-800 border border-slate-700 p-0.5 rounded-xl gap-0.5">
+          <div className="flex bg-slate-800/80 border border-slate-700/50 p-0.5 rounded-xl gap-0.5">
             <button onClick={() => setViewTab('preview')} className={TAB_CLS(viewTab === 'preview')}>
               <Eye size={11} /> Preview
             </button>
@@ -866,7 +870,7 @@ const DiagramGenerator: React.FC = () => {
               {/* Copy */}
               <button
                 onClick={handleCopy}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-slate-400 hover:text-white border border-slate-700 rounded-lg transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-slate-400 hover:text-white border border-slate-700/50 rounded-lg transition-all duration-200 hover:border-slate-600 hover:bg-white/5"
               >
                 {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
                 {copied ? 'Copied' : 'Copy'}
@@ -898,7 +902,7 @@ const DiagramGenerator: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => setShowSaveInput(true)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-slate-400 hover:text-white border border-slate-700 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-slate-400 hover:text-white border border-slate-700/50 rounded-lg transition-all duration-200 hover:border-slate-600 hover:bg-white/5"
                   >
                     <Save size={11} /> Save
                   </button>
@@ -910,25 +914,26 @@ const DiagramGenerator: React.FC = () => {
                 <div className="relative">
                   <button
                     onClick={() => setShowExportMenu(!showExportMenu)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-slate-400 hover:text-white border border-slate-700 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-slate-400 hover:text-white border border-slate-700/50 rounded-lg transition-all duration-200 hover:border-slate-600 hover:bg-white/5"
                   >
                     <Download size={11} /> Export <ChevronDown size={9} />
                   </button>
                   {showExportMenu && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
-                      <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden min-w-[120px]">
+                      <div className="absolute right-0 top-full mt-1.5 bg-gradient-to-b from-slate-800 to-slate-850 border border-slate-700/50 rounded-xl shadow-2xl shadow-black/40 z-20 overflow-hidden min-w-[130px] backdrop-blur-sm">
                         <button
                           onClick={() => { handleDownloadSVG(); setShowExportMenu(false); }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                          className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-[11px] font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-all duration-150"
                         >
-                          <FileDown size={12} /> SVG
+                          <FileDown size={13} /> SVG Vector
                         </button>
+                        <div className="mx-3 border-t border-slate-700/50" />
                         <button
                           onClick={() => { handleDownloadPNG(); setShowExportMenu(false); }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                          className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-[11px] font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-all duration-150"
                         >
-                          <Image size={12} /> PNG
+                          <Image size={13} /> PNG Image
                         </button>
                       </div>
                     </>
@@ -951,21 +956,29 @@ const DiagramGenerator: React.FC = () => {
       {/* Content */}
       <div className="flex-1 overflow-auto min-h-[300px]">
         {loading && (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <Loader2 size={24} className="animate-spin text-blue-400" />
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Analyzing system...</p>
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full border-2 border-blue-500/20" />
+              <Loader2 size={28} className="animate-spin text-blue-400 absolute inset-0 m-auto" />
+            </div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Analyzing system...</p>
           </div>
         )}
 
         {!loading && !hasGenerated && !error && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-600 p-6">
-            <Workflow size={40} strokeWidth={1} />
-            <p className="text-xs font-bold uppercase tracking-widest text-center">Describe a system, pick a template, or use the visual editor</p>
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-500 p-8">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center shadow-lg shadow-slate-900/50">
+              <Workflow size={28} strokeWidth={1.5} className="text-slate-400" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-xs font-bold uppercase tracking-widest">Ready to create</p>
+              <p className="text-[10px] text-slate-600">Describe a system, pick a template, or use the visual editor</p>
+            </div>
           </div>
         )}
 
         {!loading && hasGenerated && viewTab === 'preview' && (
-          <div ref={previewRef} className="flex items-center justify-center bg-white rounded-xl m-4 p-4 min-h-[250px]" />
+          <div ref={previewRef} className="flex items-center justify-center bg-white rounded-xl m-4 p-4 min-h-[250px] shadow-inner" />
         )}
 
         {!loading && hasGenerated && viewTab === 'code' && (
@@ -973,7 +986,7 @@ const DiagramGenerator: React.FC = () => {
             <textarea
               value={editableCode}
               onChange={e => handleCodeChange(e.target.value)}
-              className="w-full h-full min-h-[400px] font-mono text-[13px] text-blue-100/90 bg-slate-800/50 border border-slate-700 rounded-xl p-4 focus:outline-none focus:border-blue-500 resize-none leading-relaxed"
+              className="w-full h-full min-h-[400px] font-mono text-[13px] text-blue-100/90 bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 resize-none leading-relaxed"
               spellCheck={false}
             />
           </div>
