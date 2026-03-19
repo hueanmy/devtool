@@ -218,25 +218,25 @@ function parseLogInput(text: string): ParsedEntry[] {
 const EXAMPLE_LOGS = `[2024-01-15 08:00:01.123] INFO Application starting up...
 [2024-01-15 08:00:01.456] INFO Loading configuration from /etc/app/config.yml
 [2024-01-15 08:00:01.789] DEBUG Configuration loaded: {env: production, workers: 8}
-[2024-01-15 08:00:02.012] INFO Connecting to database at db-primary.internal:5432
+[2024-01-15 08:00:02.012] INFO Connecting to database on port 5432
 [2024-01-15 08:00:02.345] DEBUG Connection pool initialized: min=5, max=20
 [2024-01-15 08:00:02.567] INFO Database connection established successfully
 [2024-01-15 08:00:03.001] INFO Starting HTTP server on port 8080
 [2024-01-15 08:00:03.234] INFO Health check endpoint registered at /health
 [2024-01-15 08:00:03.456] INFO Application ready, accepting requests
-[2024-01-15 08:00:10.111] DEBUG Incoming request: GET /api/users (client: 192.168.1.50)
+[2024-01-15 08:00:10.111] DEBUG Incoming request: GET /api/users
 [2024-01-15 08:00:10.222] DEBUG Query executed in 12ms: SELECT * FROM users WHERE active = true
 [2024-01-15 08:00:10.333] INFO Request completed: GET /api/users → 200 (125ms)
-[2024-01-15 08:00:15.444] DEBUG Incoming request: POST /api/orders (client: 10.0.0.23)
+[2024-01-15 08:00:15.444] DEBUG Incoming request: POST /api/orders
 [2024-01-15 08:00:15.555] WARN Slow query detected (1523ms): SELECT o.*, p.* FROM orders o JOIN products p ON o.product_id = p.id WHERE o.status = 'pending'
 [2024-01-15 08:00:15.666] INFO Request completed: POST /api/orders → 201 (1680ms)
-[2024-01-15 08:00:20.001] DEBUG Incoming request: GET /api/products/999 (client: 172.16.0.8)
+[2024-01-15 08:00:20.001] DEBUG Incoming request: GET /api/products/999
 [2024-01-15 08:00:20.050] WARN Product not found: id=999, returning 404
 [2024-01-15 08:00:20.060] INFO Request completed: GET /api/products/999 → 404 (59ms)
-[2024-01-15 08:00:25.100] DEBUG Cache hit for key: user_session_abc123
-[2024-01-15 08:00:25.200] TRACE Session details: {userId: 42, role: "admin", expiresAt: "2024-01-15T12:00:00Z"}
-[2024-01-15 08:00:30.300] DEBUG Incoming request: PUT /api/users/42 (client: 192.168.1.50)
-[2024-01-15 08:00:30.400] INFO User profile updated: id=42, fields=[email, displayName]
+[2024-01-15 08:00:25.100] DEBUG Cache hit for key: product_catalog_v2
+[2024-01-15 08:00:25.200] TRACE Cache stats: {hits: 1024, misses: 38, evictions: 5, ttl: "300s"}
+[2024-01-15 08:00:30.300] DEBUG Incoming request: PUT /api/users/42
+[2024-01-15 08:00:30.400] INFO User profile updated: id=42, fields=[displayName, theme]
 [2024-01-15 08:00:30.500] DEBUG Audit log written: user=42, action=profile_update
 [2024-01-15 08:00:35.100] ERROR Failed to process payment for order #1847
 java.lang.NullPointerException: Cannot invoke method on null reference
@@ -244,13 +244,13 @@ java.lang.NullPointerException: Cannot invoke method on null reference
     at com.app.payment.PaymentController.handlePayment(PaymentController.java:67)
     at com.app.core.RequestDispatcher.dispatch(RequestDispatcher.java:203)
     at com.app.core.HttpHandler.handle(HttpHandler.java:89)
-Caused by: java.sql.SQLException: Connection refused to host: payment-gw.internal:443
+Caused by: java.sql.SQLException: Connection refused — payment service unavailable
     at com.app.db.ConnectionPool.getConnection(ConnectionPool.java:55)
     at com.app.payment.PaymentService.initTransaction(PaymentService.java:98)
     ... 4 more
 [2024-01-15 08:00:35.200] ERROR Payment gateway unreachable — triggering circuit breaker
 [2024-01-15 08:00:35.300] WARN Circuit breaker OPEN for payment-gateway (threshold: 5 failures in 60s)
-[2024-01-15 08:00:40.100] DEBUG Incoming request: GET /api/orders?status=pending (client: 10.0.0.23)
+[2024-01-15 08:00:40.100] DEBUG Incoming request: GET /api/orders?status=pending
 [2024-01-15 08:00:40.200] DEBUG Query executed in 8ms: SELECT * FROM orders WHERE status = 'pending' LIMIT 50
 [2024-01-15 08:00:40.300] INFO Request completed: GET /api/orders → 200 (200ms)
 [2024-01-15 08:00:45.100] INFO Scheduled task: cleanup_expired_sessions started
@@ -261,8 +261,8 @@ Caused by: java.sql.SQLException: Connection refused to host: payment-gw.interna
 [2024-01-15 08:00:55.100] WARN High memory usage detected: 78% of allocated heap
 [2024-01-15 08:00:55.200] INFO Triggering garbage collection
 [2024-01-15 08:00:55.300] DEBUG GC completed: freed 180MB in 45ms
-[2024-01-15 08:01:00.100] DEBUG Incoming request: DELETE /api/users/99 (client: 192.168.1.50)
-[2024-01-15 08:01:00.200] WARN Unauthorized deletion attempt: user=99 by session=guest_token
+[2024-01-15 08:01:00.100] DEBUG Incoming request: DELETE /api/users/99
+[2024-01-15 08:01:00.200] WARN Unauthorized deletion attempt: user=99, insufficient permissions
 [2024-01-15 08:01:00.300] INFO Request completed: DELETE /api/users/99 → 403 (200ms)
 [2024-01-15 08:01:05.100] ERROR Unhandled exception in worker thread #3
 java.lang.OutOfMemoryError: GC overhead limit exceeded
