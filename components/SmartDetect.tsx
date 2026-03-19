@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { detectAll, detectFile, getExtHint, DetectResult } from '../utils/smartDetect';
-import { Wand2, Upload, ArrowRight, Filter, ListFilter, Code2, Braces, FileText, AlertTriangle, Database, Key, Replace, Workflow, Clock, Palette, Timer, ScrollText } from 'lucide-react';
+import { Wand2, Upload, ArrowRight, Filter, ListFilter, Code2, Braces, FileText, AlertTriangle, Database, Key, Replace, Workflow, Clock, Palette, Timer, ScrollText, Clipboard, X } from 'lucide-react';
 
 interface SmartDetectProps {
   onDetect: (tool: string, data: string) => void;
@@ -124,7 +124,7 @@ export default function SmartDetect({ onDetect, onDetectFile, onNavigate }: Smar
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider">
           <Wand2 size={14} />
-          Smart Detect
+          Smart Detector
         </div>
         <h2 className="text-2xl font-black text-slate-800 tracking-tight">Paste anything — we'll find the right tool</h2>
         <p className="text-sm text-slate-500">Paste text, drop a file, or pick a tool below</p>
@@ -132,29 +132,67 @@ export default function SmartDetect({ onDetect, onDetectFile, onNavigate }: Smar
 
       {/* Input area */}
       <div
-        className={`relative rounded-2xl border-2 border-dashed transition-all duration-200 ${
+        className={`relative rounded-2xl border-2 transition-all duration-200 ${
           isDragging
-            ? 'border-blue-400 bg-blue-50/50 scale-[1.01]'
+            ? 'border-blue-400 bg-blue-50/50 scale-[1.01] border-dashed'
             : input
             ? 'border-slate-300 bg-white'
-            : 'border-slate-200 bg-white hover:border-slate-300'
+            : 'border-dashed border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-white'
         }`}
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
       >
+        {/* Hidden textarea for paste capture */}
         <textarea
           value={input}
-          onChange={(e) => handleInputChange(e.target.value)}
-          onPaste={handlePaste}
-          placeholder="Paste JSON, SQL, JWT, stack trace, log, markdown, cron expression, color code, epoch timestamp... or drop a file here"
-          className="w-full h-48 p-5 bg-transparent rounded-2xl resize-none text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none"
+          onChange={() => {}}
+          onPaste={(e) => {
+            handlePaste(e);
+            if (!e.defaultPrevented) {
+              const text = e.clipboardData.getData('text');
+              if (text) {
+                e.preventDefault();
+                handleInputChange(text);
+              }
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.ctrlKey || e.metaKey) return;
+            e.preventDefault();
+          }}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-default z-10"
           spellCheck={false}
+          aria-label="Paste content here"
         />
+
+        {/* Visual content */}
+        {input ? (
+          /* Pasted content preview */
+          <div className="relative">
+            <pre className="p-5 pr-12 text-sm font-mono text-slate-700 whitespace-pre-wrap break-all max-h-48 overflow-auto leading-relaxed">{input}</pre>
+            <button
+              onClick={() => { setInput(''); setResults([]); }}
+              className="absolute top-3 right-3 p-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 transition-all z-20"
+              title="Clear"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          /* Empty state — paste prompt */
+          <div className="flex flex-col items-center justify-center py-12 px-5 pointer-events-none select-none">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
+              <Clipboard size={22} className="text-blue-500" />
+            </div>
+            <p className="text-sm font-bold text-slate-600 mb-1">Ctrl+V to paste content</p>
+            <p className="text-xs text-slate-400">or drop a file here</p>
+          </div>
+        )}
 
         {/* Drop overlay */}
         {isDragging && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-blue-50/80 backdrop-blur-sm pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-blue-50/80 backdrop-blur-sm z-20">
             <div className="flex items-center gap-3 text-blue-600">
               <Upload size={24} />
               <span className="text-sm font-bold">Drop file to detect</span>
@@ -163,24 +201,14 @@ export default function SmartDetect({ onDetect, onDetectFile, onNavigate }: Smar
         )}
 
         {/* Bottom bar */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="text-xs text-slate-400 hover:text-blue-600 font-semibold transition-colors flex items-center gap-1.5"
-            >
-              <Upload size={12} />
-              Upload file
-            </button>
-            {input && (
-              <button
-                onClick={() => { setInput(''); setResults([]); }}
-                className="text-xs text-slate-400 hover:text-red-500 font-semibold transition-colors"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 relative z-20">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="text-xs text-slate-400 hover:text-blue-600 font-semibold transition-colors flex items-center gap-1.5"
+          >
+            <Upload size={12} />
+            Upload file
+          </button>
           {detecting && (
             <div className="flex items-center gap-2 text-xs text-blue-500 font-semibold">
               <div className="w-3 h-3 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />

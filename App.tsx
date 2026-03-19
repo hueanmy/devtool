@@ -27,7 +27,7 @@ const LogAnalyzer           = lazy(() => import('./components/LogAnalyzer'));
 type AppMode = 'smartdetect' | 'privacy' | 'metadata' | 'queryplan' | 'dataformatter' | 'listcleaner' | 'sqlformatter' | 'jsontools' | 'markdown' | 'stacktrace' | 'mockdata' | 'jwtdecode' | 'texttools' | 'diagram' | 'epoch' | 'color' | 'cron' | 'logs';
 
 const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
-  { id: 'smartdetect',   label: 'Smart Detect',    icon: <Wand2 size={16} /> },
+  { id: 'smartdetect',   label: 'Smart Detector',   icon: <Wand2 size={16} /> },
   { id: 'dataformatter', label: 'Data Formatter',  icon: <Filter size={16} /> },
   { id: 'listcleaner',   label: 'List Cleaner',    icon: <ListFilter size={16} /> },
   { id: 'sqlformatter',  label: 'SQL',             icon: <Code2 size={16} /> },
