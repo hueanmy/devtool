@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
-import { Filter, ListFilter, Code2, Braces, FileText, AlertTriangle, Database, Key, Replace, Workflow, Clock, Palette, Timer, ScrollText, Wand2 } from 'lucide-react';
+import { Filter, ListFilter, Code2, Braces, FileText, AlertTriangle, Database, Key, Replace, Workflow, Clock, Palette, Timer, ScrollText, Wand2, GitCompare } from 'lucide-react';
 import { ImageFile } from './types';
 import { extractMetadata, zeroperlWasmUrl } from './utils/exifParser';
 import MetadataExplorer from './components/MetadataExplorer';
@@ -23,8 +23,9 @@ const EpochConverter        = lazy(() => import('./components/EpochConverter'));
 const ColorConverter        = lazy(() => import('./components/ColorConverter'));
 const CronBuilder           = lazy(() => import('./components/CronBuilder'));
 const LogAnalyzer           = lazy(() => import('./components/LogAnalyzer'));
+const TextDiff              = lazy(() => import('./components/TextDiff'));
 
-type AppMode = 'smartdetect' | 'privacy' | 'metadata' | 'queryplan' | 'dataformatter' | 'listcleaner' | 'sqlformatter' | 'jsontools' | 'markdown' | 'stacktrace' | 'mockdata' | 'jwtdecode' | 'texttools' | 'diagram' | 'epoch' | 'color' | 'cron' | 'logs';
+type AppMode = 'smartdetect' | 'privacy' | 'metadata' | 'queryplan' | 'dataformatter' | 'listcleaner' | 'sqlformatter' | 'jsontools' | 'markdown' | 'stacktrace' | 'mockdata' | 'jwtdecode' | 'texttools' | 'diagram' | 'epoch' | 'color' | 'cron' | 'logs' | 'textdiff';
 
 const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
   { id: 'smartdetect',   label: 'Smart Detect',    icon: <Wand2 size={16} /> },
@@ -41,6 +42,7 @@ const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
   { id: 'color',        label: 'Color Converter', icon: <Palette size={16} /> },
   { id: 'cron',         label: 'Cron Builder',    icon: <Timer size={16} /> },
   { id: 'logs',         label: 'Log Analyzer',    icon: <ScrollText size={16} /> },
+  { id: 'textdiff',    label: 'Text Compare',    icon: <GitCompare size={16} /> },
   { id: 'diagram',      label: 'Diagram Generator', icon: <Workflow size={16} /> },
   { id: 'metadata',      label: 'Binary Metadata', icon: <i className="fa-solid fa-fingerprint text-[16px]" /> },
   { id: 'queryplan',     label: 'Query Plan',      icon: <i className="fa-solid fa-diagram-project text-[16px]" /> },
@@ -49,7 +51,7 @@ const NAV_TABS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(() => {
     const saved = localStorage.getItem('devtoolkit:lastTab');
-    const valid: AppMode[] = ['smartdetect','privacy','metadata','queryplan','dataformatter','listcleaner','sqlformatter','jsontools','markdown','stacktrace','mockdata','jwtdecode','texttools','diagram','epoch','color','cron','logs'];
+    const valid: AppMode[] = ['smartdetect','privacy','metadata','queryplan','dataformatter','listcleaner','sqlformatter','jsontools','markdown','stacktrace','mockdata','jwtdecode','texttools','diagram','epoch','color','cron','logs','textdiff'];
     return valid.includes(saved as AppMode) ? (saved as AppMode) : 'smartdetect';
   });
 
@@ -166,6 +168,7 @@ const App: React.FC = () => {
            mode === 'color'     ? <ColorConverter initialData={pendingData} /> :
            mode === 'cron'      ? <CronBuilder initialData={pendingData} /> :
            mode === 'logs'      ? <LogAnalyzer initialData={pendingData} /> :
+           mode === 'textdiff'  ? <TextDiff initialData={pendingData} /> :
            mode === 'diagram'    ? <DiagramGenerator initialData={pendingData} /> :
            !session ? (
             <DropZone onFile={processFile} error={error} />
