@@ -29,24 +29,21 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 }
 ```
 
-### Claude Code
+### Claude Code (CLI & VSCode Extension)
+
+Add globally (available in all projects):
+
+```bash
+claude mcp add -s user devtoolkit -- npx -y devtoolkit-mcp
+```
+
+Or add for current project only:
 
 ```bash
 claude mcp add devtoolkit -- npx -y devtoolkit-mcp
 ```
 
-Or add to `.mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "devtoolkit": {
-      "command": "npx",
-      "args": ["-y", "devtoolkit-mcp"]
-    }
-  }
-}
-```
+> **Note:** Do NOT manually edit `~/.claude/.mcp.json` — use `claude mcp add` to register servers correctly.
 
 ### Cursor
 
