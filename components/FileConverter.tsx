@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
-  Upload, Download, ArrowRight, X, Image, Code2, Binary,
+  Upload, Download, X, Image, Code2, Binary,
   RefreshCw, Loader2, CheckCircle2, AlertCircle, Copy, Check,
 } from 'lucide-react';
 import {
@@ -30,6 +30,7 @@ interface QueueItem {
   status: 'pending' | 'converting' | 'done' | 'error';
   error?: string;
   result?: ConvertedFile;
+  dataFormat?: DataFormat;
 }
 
 // ── Constants ──
@@ -85,6 +86,71 @@ const CATEGORIES: { id: ConversionCategory; label: string; icon: React.ReactNode
 const IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp,image/bmp,image/avif,image/gif,image/svg+xml,image/tiff,image/heic,image/heif,image/vnd.adobe.photoshop,image/x-icon,image/vnd.microsoft.icon,.png,.jpg,.jpeg,.webp,.bmp,.gif,.svg,.ico,.dds,.tiff,.tif,.avif,.cur,.psd,.wbmp,.hdr,.heic,.heif';
 const DATA_ACCEPT = '.json,.csv,.tsv,.xml,.yaml,.yml';
 
+const DATA_EXT_TO_FORMAT: Record<string, DataFormat> = {
+  json: 'json',
+  csv: 'csv',
+  tsv: 'tsv',
+  xml: 'xml',
+  yaml: 'yaml',
+  yml: 'yaml',
+};
+
+const DATA_MIME_HINTS: Array<{ pattern: RegExp; format: DataFormat }> = [
+  { pattern: /json/i, format: 'json' },
+  { pattern: /(text\/csv|application\/csv|csv)/i, format: 'csv' },
+  { pattern: /(tab-separated-values|tsv)/i, format: 'tsv' },
+  { pattern: /xml/i, format: 'xml' },
+  { pattern: /(yaml|yml|x-yaml)/i, format: 'yaml' },
+];
+
+function detectDataFormatFromFile(file: File): DataFormat | null {
+  const extMatch = file.name.toLowerCase().match(/\.([a-z0-9]+)$/i);
+  const ext = extMatch?.[1];
+  if (ext && DATA_EXT_TO_FORMAT[ext]) return DATA_EXT_TO_FORMAT[ext];
+
+  const type = file.type || '';
+  const mimeHit = DATA_MIME_HINTS.find(item => item.pattern.test(type));
+  return mimeHit?.format ?? null;
+}
+
+function detectDataFormatFromText(input: string): DataFormat | null {
+  const text = input.trim();
+  if (!text) return null;
+
+  if (text.startsWith('{') || text.startsWith('[')) {
+    try {
+      JSON.parse(text);
+      return 'json';
+    } catch {
+      // continue
+    }
+  }
+
+  if (text.startsWith('<')) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/xml');
+      if (!doc.querySelector('parsererror')) return 'xml';
+    } catch {
+      // continue
+    }
+  }
+
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (lines.length === 0) return null;
+
+  const hasTsv = lines.some(line => line.includes('\t'));
+  if (hasTsv) return 'tsv';
+
+  const hasCsv = lines.some(line => line.includes(','));
+  if (hasCsv) return 'csv';
+
+  const yamlLike = lines.some(line => /^[-\s]*[A-Za-z0-9_"'.-]+\s*:\s*.+$/.test(line));
+  if (yamlLike || lines[0] === '---') return 'yaml';
+
+  return null;
+}
+
 let idCounter = 0;
 const uid = () => `fc_${++idCounter}_${Date.now()}`;
 
@@ -109,7 +175,6 @@ const FileConverter: React.FC = () => {
   const [imgMaxHeight, setImgMaxHeight] = useState<number | ''>('');
 
   // Data options
-  const [dataFrom, setDataFrom] = useState<DataFormat>('json');
   const [dataTo, setDataTo] = useState<DataFormat>('csv');
 
   // Encode options
@@ -172,14 +237,56 @@ const FileConverter: React.FC = () => {
     }
   }, [supportsAvifOutput, imgTarget]);
 
+  const queuedDataFormats = useMemo<DataFormat[]>(() => {
+    if (category !== 'data') return [];
+    const detected = queue
+      .filter(item => item.status === 'pending' || item.status === 'converting')
+      .map(item => item.dataFormat)
+      .filter((format): format is DataFormat => Boolean(format));
+    return Array.from(new Set(detected));
+  }, [category, queue]);
+
+  const dataOutputOptions = useMemo(() => {
+    if (queuedDataFormats.length === 0) return DATA_FORMATS;
+    return DATA_FORMATS.filter(option => queuedDataFormats.every(input => input !== option.value));
+  }, [queuedDataFormats]);
+
+  useEffect(() => {
+    if (category !== 'data') return;
+    if (dataOutputOptions.length === 0) return;
+    if (!dataOutputOptions.some(option => option.value === dataTo)) {
+      setDataTo(dataOutputOptions[0].value);
+    }
+  }, [category, dataOutputOptions, dataTo]);
+
   const addFiles = useCallback((files: FileList | File[]) => {
-    const items: QueueItem[] = Array.from(files).map(file => ({
-      id: uid(),
-      file,
-      status: 'pending' as const,
-    }));
+    const items: QueueItem[] = Array.from(files).map(file => {
+      if (category === 'data') {
+        const detected = detectDataFormatFromFile(file);
+        if (!detected) {
+          return {
+            id: uid(),
+            file,
+            status: 'error' as const,
+            error: 'Unsupported data format. Use JSON, CSV, TSV, XML, or YAML.',
+          };
+        }
+        return {
+          id: uid(),
+          file,
+          status: 'pending' as const,
+          dataFormat: detected,
+        };
+      }
+
+      return {
+        id: uid(),
+        file,
+        status: 'pending' as const,
+      };
+    });
     setQueue(prev => [...prev, ...items]);
-  }, []);
+  }, [category]);
 
   const removeFromQueue = (id: string) => {
     setQueue(prev => prev.filter(q => q.id !== id));
@@ -235,9 +342,16 @@ const FileConverter: React.FC = () => {
           resultName = `${baseName}${ext}`;
         } else if (category === 'data') {
           const text = await item.file.text();
-          const output = convertData(text, dataFrom, dataTo);
+          const detectedFrom = item.dataFormat ?? detectDataFormatFromFile(item.file) ?? detectDataFormatFromText(text);
+          if (!detectedFrom) {
+            throw new Error(`Cannot detect input format for "${item.file.name}".`);
+          }
+          if (detectedFrom === dataTo) {
+            throw new Error(`"${item.file.name}" is already ${detectedFrom.toUpperCase()}. Choose another output format.`);
+          }
+          const output = convertData(text, detectedFrom, dataTo);
           const ext = DATA_FORMATS.find(f => f.value === dataTo)!.ext;
-          resultBlob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+          resultBlob = new Blob([output], { type: DATA_MIME[dataTo] });
           const baseName = item.file.name.replace(/\.[^.]+$/, '');
           resultName = `${baseName}${ext}`;
         } else {
@@ -306,10 +420,18 @@ const FileConverter: React.FC = () => {
   const handleDataTextConvert = () => {
     const input = dataTextInput ?? '';
     try {
-      const output = convertData(input, dataFrom, dataTo);
+      const detectedFrom = detectDataFormatFromText(input);
+      if (!detectedFrom) {
+        throw new Error('Cannot detect input format. Paste valid JSON, CSV, TSV, XML, or YAML.');
+      }
+      if (detectedFrom === dataTo) {
+        throw new Error(`Input is already ${detectedFrom.toUpperCase()}. Choose another output format.`);
+      }
+
+      const output = convertData(input, detectedFrom, dataTo);
       setDataTextOutput(output);
 
-      const fromExt = DATA_FORMATS.find(f => f.value === dataFrom)?.ext || '.txt';
+      const fromExt = DATA_FORMATS.find(f => f.value === detectedFrom)?.ext || '.txt';
       const toExt = DATA_FORMATS.find(f => f.value === dataTo)?.ext || '.txt';
       const resultBlob = new Blob([output], { type: DATA_MIME[dataTo] || 'text/plain;charset=utf-8' });
 
@@ -405,7 +527,21 @@ const FileConverter: React.FC = () => {
   const pendingCount = queue.filter(q => q.status === 'pending').length;
   const queueHasPending = pendingCount > 0;
   const hasAnyResults = results.length > 0 || Boolean(base64Output);
+  const canConvertDataBatch = category !== 'data' || !queueHasPending || dataOutputOptions.length > 0;
   const imageFormatMeta = IMAGE_FORMATS.find(f => f.value === imgTarget);
+  const dataOutputMeta = DATA_FORMATS.find(f => f.value === dataTo);
+  const dataInputLabel = queuedDataFormats.length === 0
+    ? 'Upload files to detect input format'
+    : queuedDataFormats.length === 1
+      ? (DATA_FORMATS.find(f => f.value === queuedDataFormats[0])?.label || queuedDataFormats[0].toUpperCase())
+      : `${queuedDataFormats.length} formats detected in queue`;
+  const detectedTextInputFormat = useMemo(
+    () => detectDataFormatFromText(normalizedDataTextInput),
+    [normalizedDataTextInput],
+  );
+  const canConvertPastedData = Boolean(normalizedDataTextInput.trim())
+    && Boolean(detectedTextInputFormat)
+    && detectedTextInputFormat !== dataTo;
   const supportedImageOutputOptions = IMAGE_OUTPUT_OPTIONS.filter(
     (option): option is { id: string; label: string; value: ImageFormat } => Boolean(option.value)
       && !(option.value === 'avif' && !supportsAvifOutput),
@@ -511,7 +647,7 @@ const FileConverter: React.FC = () => {
                         ))}
                       </optgroup>
                     </select>
-                    <div className="h-11 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/70 px-3 flex items-center justify-between">
+                    <div className="h-11 self-end rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/70 px-3 flex items-center justify-between">
                       <p className="text-[9px] uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ext</p>
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{imageFormatMeta?.ext || '.img'}</p>
                     </div>
@@ -561,28 +697,36 @@ const FileConverter: React.FC = () => {
             )}
 
             {category === 'data' && (
-              <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">From</label>
-                  <select
-                    value={dataFrom}
-                    onChange={e => setDataFrom(e.target.value as DataFormat)}
-                    className={inputBaseClass}
-                  >
-                    {DATA_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                  </select>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_108px] gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">Output Format</label>
+                    <select
+                      value={dataOutputOptions.length > 0 ? dataTo : ''}
+                      onChange={e => setDataTo(e.target.value as DataFormat)}
+                      className={compactSelectClass}
+                      disabled={dataOutputOptions.length === 0}
+                    >
+                      {dataOutputOptions.length === 0 && (
+                        <option value="" disabled>No compatible output format</option>
+                      )}
+                      {dataOutputOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="h-11 self-end rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/70 px-3 flex items-center justify-between">
+                    <p className="text-[9px] uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ext</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{dataOutputMeta?.ext || '.txt'}</p>
+                  </div>
                 </div>
-                <ArrowRight size={16} className="text-slate-400 mb-3" />
-                <div>
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">To</label>
-                  <select
-                    value={dataTo}
-                    onChange={e => setDataTo(e.target.value as DataFormat)}
-                    className={inputBaseClass}
-                  >
-                    {DATA_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                  </select>
+                <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-50/70 dark:bg-slate-800/40 px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Detected Input</p>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-1">{dataInputLabel}</p>
                 </div>
+                {dataOutputOptions.length === 0 && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    Current queue has mixed formats that cannot share one output target. Remove some files or split the batch.
+                  </p>
+                )}
               </div>
             )}
 
@@ -612,18 +756,25 @@ const FileConverter: React.FC = () => {
             <div className={`${cardClass} overflow-hidden`}>
               <div className="px-5 py-3 border-b border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between">
                 <span className={sectionLabelClass}>Paste Input</span>
-                <button
-                  onClick={handleDataTextConvert}
-                  disabled={!normalizedDataTextInput.trim()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white dark:bg-blue-500 hover:opacity-90 disabled:opacity-40 transition-opacity"
-                >
-                  <RefreshCw size={12} /> Convert
-                </button>
+                <div className="flex items-center gap-3">
+                  {detectedTextInputFormat && (
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-300">
+                      Detected: {DATA_FORMATS.find(f => f.value === detectedTextInputFormat)?.label || detectedTextInputFormat.toUpperCase()}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleDataTextConvert}
+                    disabled={!canConvertPastedData}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white dark:bg-blue-500 hover:opacity-90 disabled:opacity-40 transition-opacity"
+                  >
+                    <RefreshCw size={12} /> Convert
+                  </button>
+                </div>
               </div>
               <textarea
                 value={normalizedDataTextInput}
                 onChange={e => setDataTextInput(e.target.value)}
-                placeholder={`Paste ${DATA_FORMATS.find(f => f.value === dataFrom)?.label} content here...`}
+                placeholder="Paste JSON, CSV, TSV, XML, or YAML content here..."
                 className="w-full h-44 px-5 py-4 text-xs font-mono bg-transparent text-slate-700 dark:text-slate-200 resize-none focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               {dataTextOutput && (
@@ -719,7 +870,14 @@ const FileConverter: React.FC = () => {
                   <div key={item.id} className="flex items-center gap-3 px-5 py-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{item.file.name}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{formatSize(item.file.size)}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {formatSize(item.file.size)}
+                        {category === 'data' && item.dataFormat && (
+                          <span className="ml-1.5 font-semibold text-blue-600 dark:text-blue-400">
+                            · {item.dataFormat.toUpperCase()}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     {item.status === 'pending' && (
                       <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300 px-2 py-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-full">Pending</span>
@@ -750,7 +908,7 @@ const FileConverter: React.FC = () => {
           {(queueHasPending || converting) && (
             <button
               onClick={category === 'encode' ? handleBase64Convert : handleConvert}
-              disabled={converting}
+              disabled={converting || !canConvertDataBatch}
               className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-semibold tracking-wide bg-gradient-to-b from-slate-900 to-slate-700 dark:from-blue-500 dark:to-indigo-500 text-white hover:opacity-95 transition-opacity shadow-[0_16px_36px_-24px_rgba(15,23,42,0.9)] disabled:opacity-45"
             >
               {converting ? (
