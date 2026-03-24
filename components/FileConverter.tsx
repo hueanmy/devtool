@@ -91,6 +91,12 @@ const DATA_MIME: Record<DataFormat, string> = {
 
 const STORAGE_SETTINGS_KEY = 'devtoolkit:file-converter:settings:v1';
 const STORAGE_HISTORY_KEY = 'devtoolkit:file-converter:history:v1';
+const MB = 1024 * 1024;
+const MAX_UPLOAD_BYTES: Record<ConversionCategory, number> = {
+  image: 50 * MB,
+  data: 20 * MB,
+  encode: 30 * MB,
+};
 
 const IMAGE_SIZE_PRESETS: Array<{ value: string; label: string; width?: number; height?: number }> = [
   { value: 'original', label: 'Original' },
@@ -544,7 +550,17 @@ const FileConverter: React.FC = () => {
   }, [imgResizePreset]);
 
   const addFiles = useCallback((files: FileList | File[]) => {
+    const maxBytes = MAX_UPLOAD_BYTES[category];
     const items: QueueItem[] = Array.from(files).map(file => {
+      if (file.size > maxBytes) {
+        return {
+          id: uid(),
+          file,
+          status: 'error' as const,
+          error: `File too large (${formatSize(file.size)}). Max ${formatSize(maxBytes)}.`,
+        };
+      }
+
       if (category === 'data') {
         const detected = detectDataFormatFromFile(file);
         if (!detected) {
@@ -1118,6 +1134,7 @@ const FileConverter: React.FC = () => {
   }, [dataPreviewSource, dataPreviewFormat, dataDelimiter, dataQuoteChar]);
   const imagePresetLabel = IMAGE_SIZE_PRESETS.find(p => p.value === imgResizePreset)?.label || 'Custom';
   const needsImageQualityControl = (imgMultiOutput ? selectedImageTargets : [imgTarget]).some(target => target !== 'png' && target !== 'bmp');
+  const maxUploadSizeLabel = formatSize(MAX_UPLOAD_BYTES[category]);
   const cardClass = 'rounded-[26px] border border-slate-200/70 dark:border-slate-700/70 bg-white/75 dark:bg-slate-900/65 backdrop-blur-xl shadow-[0_28px_60px_-38px_rgba(15,23,42,0.65)]';
   const sectionLabelClass = 'text-[10px] font-semibold tracking-[0.18em] uppercase text-slate-500 dark:text-slate-400';
   const inputBaseClass = 'w-full text-sm border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2.5 bg-white/85 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-400 transition';
@@ -1736,6 +1753,9 @@ const FileConverter: React.FC = () => {
                 {category === 'image' && 'PNG, JPG/JPEG, WebP, BMP, AVIF, GIF, SVG, ICO, TIFF, HEIC, PSD...'}
                 {category === 'data' && 'JSON, CSV, TSV, XML, YAML'}
                 {category === 'encode' && 'Any file'}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                Max upload per file: {maxUploadSizeLabel}
               </p>
               {category === 'image' && (
                 <p className="text-[11px] text-blue-600/90 dark:text-blue-400/90 mt-2 font-medium">
